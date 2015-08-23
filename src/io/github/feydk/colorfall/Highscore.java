@@ -79,6 +79,9 @@ public class Highscore
 
 	public void store(UUID gameUuid, UUID playerUuid, String playerName, Date startTime, Date endTime, int rounds, boolean winner)
 	{
+		if(endTime == null)
+			endTime = new Date();
+		
 		final String sql =
 		"INSERT INTO `Colorfall` (" +
 		" `game_uuid`, `player_uuid`, `player_name`, `start_time`, `end_time`, `rounds`, `winner`" +
@@ -107,7 +110,7 @@ public class Highscore
 	List<Entry> list()
 	{
 		final String sql =
-		"SELECT player_name, COUNT(*) AS count, SUM(rounds) AS rounds, SUM(winner) AS wins FROM Colorfall GROUP BY player_uuid ORDER BY rounds DESC LIMIT 10";
+		"SELECT player_name, COUNT(*) AS count, SUM(rounds) AS rounds, SUM(winner) AS wins FROM Colorfall GROUP BY player_uuid ORDER BY wins DESC, rounds DESC LIMIT 10";
 		
 		List<Entry> result = new ArrayList<>();
 		

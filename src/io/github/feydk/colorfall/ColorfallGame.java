@@ -368,7 +368,9 @@ public class ColorfallGame extends Game implements Listener
 			
 			for(PlayerInfo info : getPlayers())
 			{
-				if(getGamePlayer(info.getUuid()).isAlive())
+				GamePlayer gp = getGamePlayer(info.getUuid());
+				
+				if(gp.isAlive() && !gp.joinedAsSpectator())
 				{
 					survivor = info;
 					aliveCount++;
@@ -417,7 +419,7 @@ public class ColorfallGame extends Game implements Listener
         {
         	GamePlayer gp = getGamePlayer(info.getUuid());
             
-        	if(!info.isOnline())
+        	if(!info.isOnline() && !gp.joinedAsSpectator())
         	{
                 // Kick players who disconnect too long.
                 long discTicks = gp.getDisconnectedTicks();
@@ -465,7 +467,7 @@ public class ColorfallGame extends Game implements Listener
     				
     				GamePlayer gp = getGamePlayer(info.getUuid());
     				
-    				if(gp.isPlayer())
+    				if(gp.isPlayer() && !gp.joinedAsSpectator())
     				{
     					gp.setLives(lives);
     				}
@@ -477,9 +479,14 @@ public class ColorfallGame extends Game implements Listener
     			
     			for(Player player : getOnlinePlayers())
     			{
-    				makeMobile(player);
-    				player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
-    				count++;
+    				GamePlayer gp = getGamePlayer(player);
+    				
+    				if(!gp.joinedAsSpectator())
+    				{    				
+    					makeMobile(player);
+    					player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
+    					count++;
+    				}
     			}
     			
     			if(count > 1)
@@ -527,6 +534,9 @@ public class ColorfallGame extends Game implements Listener
     			for(PlayerInfo info : getPlayers())
     			{
     				GamePlayer gp = getGamePlayer(info.getUuid());
+    				
+    				if(gp.joinedAsSpectator())
+    					continue;
     				
     				if(gp.isAlive())
     				{
@@ -662,7 +672,9 @@ public class ColorfallGame extends Game implements Listener
     	{
     		for(Player player : getOnlinePlayers())
     		{
-    			if(!getGamePlayer(player).isReady())
+    			GamePlayer gp = getGamePlayer(player);
+    			
+    			if(!gp.isReady() && !gp.joinedAsSpectator())
     			{
     				List<Object> list = new ArrayList<>();
     				list.add(Msg.format("&fClick here when ready: "));
@@ -689,8 +701,9 @@ public class ColorfallGame extends Game implements Listener
     		for(PlayerInfo info : getPlayers())
     		{
     			playerCount++;
+    			GamePlayer gp = getGamePlayer(info.getPlayer());
     			
-    			if(!getGamePlayer(info.getUuid()).isReady())
+    			if(!gp.isReady() && !gp.joinedAsSpectator())
     			{
     				allReady = false;
     				break;
@@ -932,11 +945,16 @@ public class ColorfallGame extends Game implements Listener
     	didSomeoneJoin = true;
     	
     	Players.reset(player);
-    	scoreboard.addPlayer(player);
-    	
+    	    	
     	GamePlayer gp = getGamePlayer(player);
+    	    	
     	gp.setName(player.getName());
     	gp.setStartTime(new Date());
+    	
+    	scoreboard.addPlayer(player);
+    	
+    	if(gp.joinedAsSpectator())
+    		return;
     	
     	switch(state)
     	{
@@ -990,6 +1008,15 @@ public class ColorfallGame extends Game implements Listener
     {
     	Player player = event.getPlayer();
     	GamePlayer gp = getGamePlayer(player);
+    	
+    	if(gp.joinedAsSpectator())
+    	{
+    		gp.setSpectator();
+    		player.setAllowFlight(true);
+    		player.setFlying(true);
+    		return;
+    	}
+    	
     	gp.setDisconnectedTicks(0);
     	
     	scoreboard.addPlayer(player);
@@ -1020,12 +1047,13 @@ public class ColorfallGame extends Game implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onPlayerLeave(PlayerLeaveEvent event)
     {
-        if(getGamePlayer(event.getPlayer()) == null)
-        {
-        	getGamePlayer(event.getPlayer()).setEndTime(new Date());
-        }
-        
-        getGamePlayer(event.getPlayer()).recordHighscore();
+    	GamePlayer gp = getGamePlayer(event.getPlayer());
+    	    	
+    	if(gp.joinedAsSpectator())
+    		return;
+    	
+        gp.setEndTime(new Date());        
+        gp.recordHighscore();
     }
     
     private void makeImmobile(Player player, Location location)
@@ -1068,10 +1096,10 @@ public class ColorfallGame extends Game implements Listener
     {
     	switch(state)
     	{
-            case INIT:
-            case WAIT_FOR_PLAYERS:
-                getLogger().info("INIT/WAIT_FOR_PLAYERS: false");
-                return false;
+            //case INIT:
+            //case WAIT_FOR_PLAYERS:
+            //    getLogger().info("INIT/WAIT_FOR_PLAYERS: false");
+            //    return false;
             default:
                 getLogger().info("default");
                 
@@ -1081,6 +1109,7 @@ public class ColorfallGame extends Game implements Listener
                     
                     for(UUID uuid : uuids)
                     {
+                    	getGamePlayer(uuid).setJoinedAsSpectator(true);
                         getGamePlayer(uuid).setSpectator();
                     }
                     
@@ -1115,6 +1144,12 @@ public class ColorfallGame extends Game implements Listener
     	Player player = (Player)event.getEntity();
     	
     	GamePlayer gp = getGamePlayer(player.getUniqueId());
+    	
+    	if(gp.joinedAsSpectator())
+    	{
+    		event.setCancelled(true);
+    		return;
+    	}
     	
     	// Ok, this isn't pretty. But..
     	// It seems that when a player is teleported, any fall damage he is due to take is inflicted immediately. Even when falling into the void.
@@ -1530,11 +1565,11 @@ public class ColorfallGame extends Game implements Listener
     {
         int i = 1;
         Msg.send(player, "&b&lColorfall Highscore");
-        Msg.send(player, "&3Rank &fGames &4Rounds &9Wins &3Name");
+        Msg.send(player, "&3Rank &fGames &aRounds &9&lWins &3Name");
         
         for(Highscore.Entry entry : entries)
         {
-            Msg.send(player, "&3#%02d &f%02d &4%d &9%d &3%s", i++, entry.getCount(), entry.getRounds(), entry.getWins(), entry.getName());
+            Msg.send(player, "&3#%02d &f%02d &a%d &9&l%d &3%s", i++, entry.getCount(), entry.getRounds(), entry.getWins(), entry.getName());
         }
     }
 

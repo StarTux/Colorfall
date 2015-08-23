@@ -24,6 +24,7 @@ public class GamePlayer
 	private Date endTime;
 	private int rounds = 0;
 	private boolean winner = false;
+	private boolean joinedAsSpectator = false;
 	
 	static enum PlayerType
 	{
@@ -36,6 +37,16 @@ public class GamePlayer
 		this.game = game;
 		this.uuid = uuid;
 		isAlive = true;
+	}
+	
+	public boolean joinedAsSpectator()
+	{
+		return this.joinedAsSpectator;
+	}
+	
+	public void setJoinedAsSpectator(boolean didhe)
+	{
+		joinedAsSpectator = didhe;
 	}
 	
 	// Is player a player (still participating in the game)?
@@ -62,7 +73,9 @@ public class GamePlayer
 	public void setSpectator()
 	{
 		type = PlayerType.SPECTATOR;
-		game.getPlayer(uuid).getPlayer().setGameMode(GameMode.SPECTATOR);
+		
+		if(game.getPlayer(uuid).isOnline())
+			game.getPlayer(uuid).getPlayer().setGameMode(GameMode.SPECTATOR);
 	}
 	
 	public void setName(String name)
