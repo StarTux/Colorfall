@@ -2,6 +2,7 @@ package io.github.feydk.colorfall;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
@@ -66,6 +67,22 @@ public class GameScoreboard
 	{
 		board.resetScores(player);
 		objective.getScore(Msg.format("&4%s", player.getName())).setScore(0);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public void removePlayer(Player player)
+	{
+		board.resetScores(player);
+	}
+	
+	@SuppressWarnings("deprecation")
+	public void updatePlayers()
+	{
+		for(OfflinePlayer player : board.getPlayers())
+		{
+			if(!player.isOnline())
+				board.resetScores(player);
+		}
 	}
 	
 	// Format seconds into mm:ss.

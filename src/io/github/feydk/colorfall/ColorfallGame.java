@@ -364,24 +364,22 @@ public class ColorfallGame extends Game implements Listener
 		{
 			// Check if only one player is left.
 			int aliveCount = 0;
-			PlayerInfo survivor = null;
+			GamePlayer survivor = null;
 			
-			for(PlayerInfo info : getPlayers())
+			for(Player player : getOnlinePlayers())
 			{
-				GamePlayer gp = getGamePlayer(info.getUuid());
+				GamePlayer gp = getGamePlayer(player);
 				
 				if(gp.isAlive() && !gp.joinedAsSpectator())
 				{
-					survivor = info;
+					survivor = gp;
 					aliveCount++;
 				}
 			}
 			
 			// There will only be picked a winner if there were more than one player playing. Meaning that a SP game shouldn't be rewarded with a win.
 			if(aliveCount == 1 && survivor != null && moreThanOnePlayed)
-			{	
-				GamePlayer winner = getGamePlayer(survivor.getUuid());
-				
+			{				
 				// Consider this scenario: 2 players left alive, both with 1 life left.
 				// Both of them falls about at the same time, but one reaches the void slightly before the other.
 				// This should be declared a draw, but without the code below, whoever reaches the void last will win.
@@ -396,12 +394,12 @@ public class ColorfallGame extends Game implements Listener
 					
 					if(winTicks >= 80)
 					{						
-						if(winner.isAlive())
+						if(survivor.isAlive())
 						{
-							winnerName = winner.getName();
-							winner.setWinner();
-							winner.setEndTime(new Date());
-							winner.recordHighscore();
+							winnerName = survivor.getName();
+							survivor.setWinner();
+							survivor.setEndTime(new Date());
+							survivor.recordHighscore();
 							newState = GameState.END;
 						}
 					}
@@ -531,14 +529,11 @@ public class ColorfallGame extends Game implements Listener
     			currentRoundDuration = round.getDuration();
     			world.setPVP(round.getPvp());
     			
-    			for(PlayerInfo info : getPlayers())
+    			for(Player player : getOnlinePlayers())
     			{
-    				GamePlayer gp = getGamePlayer(info.getUuid());
+    				GamePlayer gp = getGamePlayer(player);
     				
-    				if(gp.joinedAsSpectator())
-    					continue;
-    				
-    				if(gp.isAlive())
+    				if(gp.isAlive() && gp.isPlayer())
     				{
     					gp.addRound();
     					
@@ -548,17 +543,17 @@ public class ColorfallGame extends Game implements Listener
     					if(powerups.size() > 0)
     					{
     						for(ItemStack stack : powerups)
-    							info.getPlayer().getInventory().addItem(stack);
+    							player.getInventory().addItem(stack);
     					}
     					
     					// Give potion effects.
     					for(PotionEffect effect : round.getDealtEffects())
     	    			{
-    	    				info.getPlayer().addPotionEffect(effect);
+    						player.addPotionEffect(effect);
     	    			}
     					
     					// Check if player has a feather (he could have thrown it away). If not, give him one.
-    					if(!info.getPlayer().getInventory().contains(Material.FEATHER))
+    					if(!player.getInventory().contains(Material.FEATHER))
     					{
     						ItemStack feather = new ItemStack(Material.FEATHER);
     						ItemMeta meta = feather.getItemMeta();
@@ -573,18 +568,18 @@ public class ColorfallGame extends Game implements Listener
     						
     						feather.setItemMeta(meta);
     						
-    						info.getPlayer().getInventory().addItem(feather);
+    						player.getInventory().addItem(feather);
     					}
     					
-    					if(info.getPlayer().getGameMode() == GameMode.SPECTATOR)
+    					if(player.getGameMode() == GameMode.SPECTATOR)
     					{
-    						info.getPlayer().teleport(gp.getSpawnLocation());
+    						player.teleport(gp.getSpawnLocation());
     						gp.setPlayer();
     					}
     				}
     				
     				// Announce pvp and color.
-    				Title.show(info.getPlayer(), (round.getPvp() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase());
+    				Title.show(player, (round.getPvp() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase());
     			}
     			
     			break;
@@ -616,18 +611,14 @@ public class ColorfallGame extends Game implements Listener
 		
 		// Item for the new color block.
 		ItemStack stack = new ItemStack(pick.TypeId, 1, (short)0, (byte)pick.DataId);
-		ItemStack previous = null;
 		
-		if(currentColor != null)
-			 previous = new ItemStack(currentColor.TypeId, 1, (short)0, (byte)currentColor.DataId);
-		
-		// Remove last color from player inventories and give them the new one.
-		for(PlayerInfo info : getPlayers())
+		// Remove all color blocks from player inventories and give them the new one.
+		for(Player player : getOnlinePlayers())
 		{
-			Inventory inv = info.getPlayer().getInventory();
+			Inventory inv = player.getInventory();
 			
-			if(previous != null && inv.contains(previous))
-				inv.remove(previous);
+			if(currentColor != null)
+				inv.remove(Material.getMaterial(currentColor.TypeId));
 			
 			inv.addItem(stack);
 		}
@@ -698,10 +689,10 @@ public class ColorfallGame extends Game implements Listener
     		boolean allReady = true;
     		int playerCount = 0;
     		
-    		for(PlayerInfo info : getPlayers())
+    		for(Player player : getOnlinePlayers())
     		{
     			playerCount++;
-    			GamePlayer gp = getGamePlayer(info.getPlayer());
+    			GamePlayer gp = getGamePlayer(player);
     			
     			if(!gp.isReady() && !gp.joinedAsSpectator())
     			{
@@ -718,7 +709,7 @@ public class ColorfallGame extends Game implements Listener
     	// Time ran out, so we force everyone ready.
     	if(timeLeft <= 0)
     	{
-    		 if(getPlayers().size() >= minPlayersToStart)
+    		 if(getOnlinePlayers().size() >= minPlayersToStart)
     			 return GameState.COUNTDOWN_TO_START;
     		 else
     			 cancel();
@@ -792,6 +783,7 @@ public class ColorfallGame extends Game implements Listener
     		Round round = getRound(currentRoundIdx);
     		
     		scoreboard.refreshTitle(roundTimeLeft);
+    		scoreboard.updatePlayers();
     		
     		long seconds = roundTimeLeft / 20;
     		    		   		
@@ -1047,6 +1039,9 @@ public class ColorfallGame extends Game implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onPlayerLeave(PlayerLeaveEvent event)
     {
+    	if(event.getPlayer() == null)
+    		return;
+    	
     	GamePlayer gp = getGamePlayer(event.getPlayer());
     	    	
     	if(gp.joinedAsSpectator())
@@ -1305,6 +1300,9 @@ public class ColorfallGame extends Game implements Listener
     
     public void onPlayerElimination(Player player)
     {
+    	// To avoid having spectators holding stuff in their hand.
+    	player.getInventory().clear();
+    	
     	getGamePlayer(player).setEndTime(new Date());
     	getGamePlayer(player).recordHighscore();
     	
