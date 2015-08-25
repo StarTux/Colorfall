@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 public class GamePlayer
 {
@@ -139,6 +140,7 @@ public class GamePlayer
 	}
 	
 	// Register that the player died. If the player has used all his lives, he is set as spectator.
+	@SuppressWarnings("deprecation")
 	public void died()
 	{
 		// See onEntityDamage for why I keep track of this.
@@ -147,20 +149,22 @@ public class GamePlayer
 		if(lives > 0)
 			lives--;
 		
+		Player player = game.getPlayer(uuid).getPlayer();
+		
 		if(lives == 0)
 		{
 			isAlive = false;
 			setSpectator();
 			
-			game.getScoreboard().setPlayerEliminated(game.getPlayer(uuid).getPlayer());
+			game.getScoreboard().setPlayerEliminated(player);
 			
-			game.onPlayerElimination(game.getPlayer(uuid).getPlayer());
+			game.onPlayerElimination(player);
 		}
 		else
 		{
-			game.getScoreboard().setPlayerScore(game.getPlayer(uuid).getPlayer(), lives);
+			game.getScoreboard().setPlayerScore(player, lives);
 			
-			game.onPlayerDeath(game.getPlayer(uuid).getPlayer());
+			game.onPlayerDeath(player);
 		}
 	}
 	

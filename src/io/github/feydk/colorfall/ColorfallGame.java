@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import com.winthier.minigames.MinigamesPlugin;
 import com.winthier.minigames.event.player.PlayerLeaveEvent;
@@ -53,6 +55,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 public class ColorfallGame extends Game implements Listener
 {		
 	World world;
+	static String nmsver;
     
 	// Stuff for keeping track of the game loop and ticks.
 	GameState state;
@@ -156,6 +159,9 @@ public class ColorfallGame extends Game implements Listener
 				onWorldsLoaded(get());
 			}
 		}, worldFile);
+    	
+    	nmsver = MinigamesPlugin.getInstance().getServer().getClass().getPackage().getName();
+        nmsver = nmsver.substring(nmsver.lastIndexOf(".") + 1);
     }
     
     private void loadPowerups()
@@ -298,7 +304,7 @@ public class ColorfallGame extends Game implements Listener
         world.setGameRuleValue("doMobSpawning", "false");
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
-				
+       				
 		task = new BukkitRunnable()
 		{
 		    @Override public void run()
@@ -531,6 +537,9 @@ public class ColorfallGame extends Game implements Listener
     			
     			for(Player player : getOnlinePlayers())
     			{
+    				//player.setMaxHealth(6);
+    				
+    				
     				GamePlayer gp = getGamePlayer(player);
     				
     				if(gp.isAlive() && gp.isPlayer())
@@ -585,6 +594,7 @@ public class ColorfallGame extends Game implements Listener
     			break;
     		// Round time is over, remove blocks.
     		case REMOVING_BLOCKS:
+    			world.setPVP(false);
     			map.removeBlocks(currentColor);
     			break;
     		// Restore blocks.
@@ -785,10 +795,14 @@ public class ColorfallGame extends Game implements Listener
     		scoreboard.refreshTitle(roundTimeLeft);
     		scoreboard.updatePlayers();
     		
+    		String actionMsg = (round.getPvp() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "") + ChatColor.BLACK + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase();
+    		    		
     		long seconds = roundTimeLeft / 20;
     		    		   		
 			for(Player player : getOnlinePlayers())
 			{
+				sendActionBar(player, actionMsg);
+				
 				// Countdown 3 seconds before round ends.
 				if(seconds > 0 && seconds <= 3)
 				{
@@ -947,7 +961,7 @@ public class ColorfallGame extends Game implements Listener
     	
     	if(gp.joinedAsSpectator())
     		return;
-    	
+    	    	
     	switch(state)
     	{
     		case INIT:
@@ -969,7 +983,12 @@ public class ColorfallGame extends Game implements Listener
     	{
     		@Override public void run()
     		{
-    			showHighscore(player);
+    			//showHighscore(player);
+    			List<Object> list = new ArrayList<>();
+				list.add(Msg.format("&2View the highscore by typing "));
+				list.add(button("&a/hi", "&3View the highscore", "/hi"));
+				
+				Msg.sendRaw(player, list);
     		}
     	}.runTaskLater(MinigamesPlugin.getInstance(), 20 * 3);
     }
@@ -1575,6 +1594,46 @@ public class ColorfallGame extends Game implements Listener
     {
         List<Highscore.Entry> entries = highscore.list();
         showHighscore(player, entries);
+    }
+    
+    // Snatched from https://github.com/Webbeh/ActionBarAPI/blob/master/src/com/connorlinfoot/actionbarapi/ActionBarAPI.java
+    public static void sendActionBar(Player player, String message)
+    {
+    	try
+    	{
+    		Class<?> c1 = Class.forName("org.bukkit.craftbukkit." + nmsver + ".entity.CraftPlayer");
+    		Object p = c1.cast(player);
+    		Object ppoc = null;
+    		Class<?> c4 = Class.forName("net.minecraft.server." + nmsver + ".PacketPlayOutChat");
+    		Class<?> c5 = Class.forName("net.minecraft.server." + nmsver + ".Packet");
+    		
+    		if(nmsver.equalsIgnoreCase("v1_8_R1") || !nmsver.startsWith("v1_8_"))
+    		{
+    			Class<?> c2 = Class.forName("net.minecraft.server." + nmsver + ".ChatSerializer");
+    			Class<?> c3 = Class.forName("net.minecraft.server." + nmsver + ".IChatBaseComponent");
+    			Method m3 = c2.getDeclaredMethod("a", new Class<?>[] {String.class});
+    			Object cbc = c3.cast(m3.invoke(c2, "{\"text\": \"" + message + "\"}"));
+    			ppoc = c4.getConstructor(new Class<?>[] {c3, byte.class}).newInstance(new Object[] {cbc, (byte) 2});
+    		}
+    		else
+    		{
+    			Class<?> c2 = Class.forName("net.minecraft.server." + nmsver + ".ChatComponentText");
+    			Class<?> c3 = Class.forName("net.minecraft.server." + nmsver + ".IChatBaseComponent");
+    			Object o = c2.getConstructor(new Class<?>[] {String.class}).newInstance(new Object[] {message});
+    			ppoc = c4.getConstructor(new Class<?>[] {c3, byte.class}).newInstance(new Object[] {o, (byte) 2});
+    		}
+    		
+    		Method m1 = c1.getDeclaredMethod("getHandle", new Class<?>[] {});
+    		Object h = m1.invoke(p);
+    		Field f1 = h.getClass().getDeclaredField("playerConnection");
+    		Object pc = f1.get(h);
+    		Method m5 = pc.getClass().getDeclaredMethod("sendPacket", new Class<?>[] {c5});
+    		m5.invoke(pc, ppoc);
+    	}
+    	catch(Exception ex)
+    	{
+    		// Do nothing. This action bar message is a bonus if it works. If it doesn't, there's no fallback anyway, so just ignore it.
+    	}
     }
 	
 	@SuppressWarnings("unused")
