@@ -140,7 +140,6 @@ public class GamePlayer
 	}
 	
 	// Register that the player died. If the player has used all his lives, he is set as spectator.
-	@SuppressWarnings("deprecation")
 	public void died()
 	{
 		// See onEntityDamage for why I keep track of this.
@@ -154,6 +153,10 @@ public class GamePlayer
 		if(lives == 0)
 		{
 			isAlive = false;
+			
+			// To avoid having spectators holding stuff in their hand.
+	    	player.getInventory().clear();
+			
 			setSpectator();
 			
 			game.getScoreboard().setPlayerEliminated(player);

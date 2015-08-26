@@ -31,6 +31,7 @@ public class GameMap
 	private List<Block> replacedBlocks = new ArrayList<>();
 	private Map<Location, ColorBlock> removedBlocks = new HashMap<Location, ColorBlock>();
 	private List<Location> spawnLocations = new ArrayList<>();
+	private List<String> credits = new ArrayList<>();
 	
 	private World world;
 	private int chunkRadius;
@@ -61,6 +62,37 @@ public class GameMap
 		Random r = new Random(System.currentTimeMillis());
 		
 		return replacedBlocks.get(r.nextInt(replacedBlocks.size()));
+	}
+	
+	public String getCredits()
+	{
+		if(credits.size() > 0)
+		{
+			if(credits.size() == 1)
+			{
+				return credits.get(0);
+			}
+			else
+			{
+				String c = "";
+				
+				for(int i = 0; i < credits.size(); i++)
+				{
+					c += credits.get(i);
+					
+					int left = credits.size() - (i + 1);
+					
+					if(left == 1)
+						c += " and ";
+					else if(left > 1)
+						c += ", ";
+				}
+				
+				return c;
+			}
+		}
+		
+		return "";
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -224,6 +256,18 @@ public class GameMap
                         Vector lookAt = world.getSpawnLocation().toVector().subtract(location.toVector());
                         location.setDirection(lookAt);
                         spawnLocations.add(location);
+                    	
+                        state.getBlock().setType(Material.AIR);
+                    }
+                    else if(firstLine.equals("[credits]"))
+                    {
+                    	for(int i = 1; i < 4; ++i)
+                    	{
+                    		String credit = signBlock.getLine(i);
+                            
+                    		if(credit != null && !credit.isEmpty())
+                    			credits.add(credit);
+                        }
                     	
                         state.getBlock().setType(Material.AIR);
                     }

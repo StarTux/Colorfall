@@ -81,6 +81,11 @@ public class ColorfallGame extends Game implements Listener
     private int endDuration;
     private int lives;
     
+    // Level config, sent from the framework.
+    private String mapID = "Default";
+    private String mapPath;
+    private boolean debug = false;
+    
     private boolean didSomeoneJoin;
     private boolean moreThanOnePlayed;
     private String winnerName;
@@ -130,23 +135,25 @@ public class ColorfallGame extends Game implements Listener
     @Override
     public void onEnable()
     {
-    	String mapname = "prototype";
-    	
     	FileConfiguration config = getConfigFile("config");
     	
-    	map = new GameMap(config.getInt("maps." + mapname + ".chunkRadius"));
+    	mapID = getConfig().getString("MapID", mapID);
+        mapPath = getConfig().getString("MapPath", config.getString("general.defaultMapPath"));
+        debug = getConfig().getBoolean("Debug", debug);
     	
-    	String worldFile = config.getString("maps." + mapname + ".world");
+    	map = new GameMap(config.getInt("general.chunkRadius"));
     	
     	disconnectLimit = config.getInt("general.disconnectLimit");
     	waitForPlayersDuration = config.getInt("general.waitForPlayersDuration");
     	countdownToStartDuration = config.getInt("general.countdownToStartDuration");
     	startedDuration = config.getInt("general.startedDuration");
     	endDuration = config.getInt("general.endDuration");
+    	lives = config.getInt("general.lives");
     	
-    	minPlayersToStart = config.getInt("maps." + mapname + ".minPlayersToStart");
+    	// Retiring the config value for now.
+    	minPlayersToStart = 1;
     	
-    	lives = config.getInt("maps." + mapname + ".lives");
+    	//minPlayersToStart = config.getInt("maps." + mapname + ".minPlayersToStart");
     	
     	loadPowerups();
     	loadRounds();
@@ -158,7 +165,7 @@ public class ColorfallGame extends Game implements Listener
 			{
 				onWorldsLoaded(get());
 			}
-		}, worldFile);
+		}, mapPath);
     	
     	nmsver = MinigamesPlugin.getInstance().getServer().getClass().getPackage().getName();
         nmsver = nmsver.substring(nmsver.lastIndexOf(".") + 1);
@@ -405,7 +412,10 @@ public class ColorfallGame extends Game implements Listener
 							winnerName = survivor.getName();
 							survivor.setWinner();
 							survivor.setEndTime(new Date());
-							survivor.recordHighscore();
+							
+							if(!debug)
+								survivor.recordHighscore();
+							
 							newState = GameState.END;
 						}
 					}
@@ -959,6 +969,11 @@ public class ColorfallGame extends Game implements Listener
     	
     	scoreboard.addPlayer(player);
     	
+    	String credits = map.getCredits();
+    	
+    	if(!credits.isEmpty())
+    		Msg.send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
+    	
     	if(gp.joinedAsSpectator())
     		return;
     	    	
@@ -1066,8 +1081,10 @@ public class ColorfallGame extends Game implements Listener
     	if(gp.joinedAsSpectator())
     		return;
     	
-        gp.setEndTime(new Date());        
-        gp.recordHighscore();
+        gp.setEndTime(new Date());
+        
+        if(!debug)
+        	gp.recordHighscore();
     }
     
     private void makeImmobile(Player player, Location location)
@@ -1319,11 +1336,10 @@ public class ColorfallGame extends Game implements Listener
     
     public void onPlayerElimination(Player player)
     {
-    	// To avoid having spectators holding stuff in their hand.
-    	player.getInventory().clear();
-    	
     	getGamePlayer(player).setEndTime(new Date());
-    	getGamePlayer(player).recordHighscore();
+    	
+    	if(!debug)
+    		getGamePlayer(player).recordHighscore();
     	
     	for(Player p : getOnlinePlayers())
     	{
