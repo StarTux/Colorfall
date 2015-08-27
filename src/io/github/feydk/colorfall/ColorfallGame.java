@@ -305,12 +305,22 @@ public class ColorfallGame extends Game implements Listener
     	world = worldLoader.getWorld(0);
     	world.setDifficulty(Difficulty.HARD);
         world.setPVP(false);
-        world.setTime(1000L);
-        world.setGameRuleValue("doDaylightCycle", "true");
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("doMobSpawning", "false");
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
+        
+        map.process(getSpawnLocation().getChunk());
+        
+        if(map.getStartingTime() == -1)
+        	world.setTime(1000L);
+        else
+        	world.setTime(map.getStartingTime());
+        
+        if(map.getLockTime())
+        	 world.setGameRuleValue("doDaylightCycle", "false");
+        else
+        	 world.setGameRuleValue("doDaylightCycle", "true");
        				
 		task = new BukkitRunnable()
 		{
@@ -319,8 +329,6 @@ public class ColorfallGame extends Game implements Listener
 		        onTick();
 		    }
 		};
-		
-		map.process(getSpawnLocation().getChunk());
 				
 		task.runTaskTimer(MinigamesPlugin.getInstance(), 1, 1);
 		MinigamesPlugin.getEventManager().registerEvents(this, this);

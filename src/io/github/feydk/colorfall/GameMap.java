@@ -32,6 +32,8 @@ public class GameMap
 	private Map<Location, ColorBlock> removedBlocks = new HashMap<Location, ColorBlock>();
 	private List<Location> spawnLocations = new ArrayList<>();
 	private List<String> credits = new ArrayList<>();
+	private int time;
+	private boolean lockTime;
 	
 	private World world;
 	private int chunkRadius;
@@ -47,6 +49,16 @@ public class GameMap
 	public GameMap(int chunkRadius)
 	{
 		this.chunkRadius = chunkRadius;
+	}
+	
+	public int getStartingTime()
+	{
+		return time;
+	}
+	
+	public boolean getLockTime()
+	{
+		return lockTime;
 	}
 	
 	public ColorBlock getRandomFromColorPool()
@@ -270,6 +282,35 @@ public class GameMap
                         }
                     	
                         state.getBlock().setType(Material.AIR);
+                        attachedBlock.setType(Material.AIR);
+                    }
+                    else if(firstLine.equals("[time]"))
+                    {
+                    	String t = signBlock.getLine(1);
+                    	
+                    	if(t != null && !t.isEmpty())
+                    	{
+                    		try
+                    		{
+                    			time = Integer.parseInt(t);
+                    		}
+                    		catch(NumberFormatException e)
+                    		{}
+                    	}
+                    	
+                    	if(time > -1)
+                    	{
+                    		String l = signBlock.getLine(2);
+                    		
+                    		if(l != null && !l.isEmpty())
+                    		{
+                    			if(l.toLowerCase().equals("lock"))
+                    				lockTime = true;
+                    		}
+                    	}
+                    	
+                        state.getBlock().setType(Material.AIR);
+                        attachedBlock.setType(Material.AIR);
                     }
                 }
             }
