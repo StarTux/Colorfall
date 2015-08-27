@@ -30,6 +30,7 @@ import org.bukkit.Material;
 import org.bukkit.Note;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -813,7 +814,15 @@ public class ColorfallGame extends Game implements Listener
     		scoreboard.refreshTitle(roundTimeLeft);
     		scoreboard.updatePlayers();
     		
-    		String actionMsg = (round.getPvp() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "") + ChatColor.BLACK + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase();
+    		String actionMsg = (round.getPvp() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
+    		
+    		// If it's night time or if we're in the end, use white color.
+    		if(world.getTime() >= 13000 || world.getBiome(255, 255) == Biome.SKY)
+    			actionMsg += ChatColor.WHITE;
+    		else
+    			actionMsg += ChatColor.BLACK;
+    		
+    		actionMsg += "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase();
     		    		
     		long seconds = roundTimeLeft / 20;
     		    		   		
