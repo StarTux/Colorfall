@@ -85,7 +85,11 @@ public class ColorfallGame extends Game implements Listener
     // Level config, sent from the framework.
     private String mapID = "Default";
     private String mapPath;
-    private boolean debug = false;
+    boolean debug = false;
+    
+    // Debug stuff.
+    List<String> debugStrings = new ArrayList<String>();
+    boolean denyStart = false;
     
     private boolean didSomeoneJoin;
     private boolean moreThanOnePlayed;
@@ -142,7 +146,7 @@ public class ColorfallGame extends Game implements Listener
         mapPath = getConfig().getString("MapPath", config.getString("general.defaultMapPath"));
         debug = getConfig().getBoolean("Debug", debug);
     	
-    	map = new GameMap(config.getInt("general.chunkRadius"));
+    	map = new GameMap(config.getInt("general.chunkRadius"), this);
     	
     	disconnectLimit = config.getInt("general.disconnectLimit");
     	waitForPlayersDuration = config.getInt("general.waitForPlayersDuration");
@@ -697,7 +701,7 @@ public class ColorfallGame extends Game implements Listener
     			if(!gp.isReady() && !gp.joinedAsSpectator())
     			{
     				List<Object> list = new ArrayList<>();
-    				list.add(Msg.format("&fClick here when ready: "));
+    				list.add(Msg.format(" &fClick here when ready: "));
     				list.add(button("&3[Ready]", "&3Mark yourself as ready", "/ready"));
     				list.add(Msg.format("&f or "));
     				list.add(button("&c[Leave]", "&cLeave this game", "/leave"));
@@ -768,7 +772,7 @@ public class ColorfallGame extends Game implements Listener
     			else if(seconds == countdownToStartDuration)
     			{
     				Title.show(player, ChatColor.GREEN + "Get ready!", ChatColor.GREEN + "Game starts in " + countdownToStartDuration + " seconds");
-    				Msg.send(player, ChatColor.AQUA + "Game starts in %d seconds", seconds);
+    				Msg.send(player, ChatColor.AQUA + " Game starts in %d seconds", seconds);
     			}
     			else
     			{
@@ -787,6 +791,16 @@ public class ColorfallGame extends Game implements Listener
     GameState tickStarted(long ticks)
     {
     	RoundState newState = null;
+    	
+    	if(denyStart)
+    	{
+    		for(Player player : getOnlinePlayers())
+			{
+    			Msg.send(player, ChatColor.RED + " Not starting game, due to missing configuration.");
+			}
+    		
+    		return GameState.END;
+    	}
     	
     	if(roundState == null)
     	{
@@ -927,15 +941,15 @@ public class ColorfallGame extends Game implements Listener
     			
     			if(winnerName != null)
     			{
-    				Msg.send(player, "&b%s wins the game!", winnerName);
+    				Msg.send(player, " &b%s wins the game!", winnerName);
     			}
     			else
     			{
-    				Msg.send(player, "&bDraw! Nobody wins.");
+    				Msg.send(player, " &bDraw! Nobody wins.");
     			}
     			
     			List<Object> list = new ArrayList<>();
-    			list.add("Click here to leave the game: ");
+    			list.add(" Click here to leave the game: ");
     			list.add(button("&c[Leave]", "&cLeave this game", "/leave"));
     			Msg.sendRaw(player, list);
     		}
@@ -991,6 +1005,19 @@ public class ColorfallGame extends Game implements Listener
     	if(!credits.isEmpty())
     		Msg.send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
     	
+    	if(debug)
+    	{
+    		if(debugStrings.size() > 0)
+    		{
+    			Msg.send(player, ChatColor.DARK_RED + " === DEBUG INFO ===");
+    			
+    			for(String s : debugStrings)
+    			{
+    				Msg.send(player, " " + ChatColor.RED + s);
+    			}
+    		}
+    	}
+    	
     	if(gp.joinedAsSpectator())
     		return;
     	    	
@@ -1017,7 +1044,7 @@ public class ColorfallGame extends Game implements Listener
     		{
     			//showHighscore(player);
     			List<Object> list = new ArrayList<>();
-				list.add(Msg.format("&2View the highscore by typing "));
+				list.add(Msg.format(" &2View the highscore by typing "));
 				list.add(button("&a/hi", "&3View the highscore", "/hi"));
 				
 				Msg.sendRaw(player, list);
@@ -1244,7 +1271,7 @@ public class ColorfallGame extends Game implements Listener
         {
             getGamePlayer(player).setReady(true);
             scoreboard.setPlayerScore(player, 1);
-            Msg.send(player, ChatColor.GREEN + "Marked as ready");
+            Msg.send(player, ChatColor.GREEN + " Marked as ready");
         }
         else if(command.equalsIgnoreCase("item") && args.length == 1 && player.isOp())
         {
@@ -1303,13 +1330,13 @@ public class ColorfallGame extends Game implements Listener
             else
             	player.getInventory().addItem(stack);
             
-            Msg.send(player, "&eGiven item %s", key);
+            Msg.send(player, " &eGiven item %s", key);
         }
         else if(command.equalsIgnoreCase("tp") && getGamePlayer(player).isSpectator())
         {
             if(args.length != 1)
             {
-                Msg.send(player, "&cUsage: /tp <player>");
+                Msg.send(player, " &cUsage: /tp <player>");
                 return true;
             }
             String arg = args[0];
@@ -1319,12 +1346,12 @@ public class ColorfallGame extends Game implements Listener
                 if(arg.equalsIgnoreCase(target.getName()))
                 {
                     player.teleport(target);
-                    Msg.send(player, "&bTeleported to %s", target.getName());
+                    Msg.send(player, " &bTeleported to %s", target.getName());
                     return true;
                 }
             }
             
-            Msg.send(player, "&cPlayer not found: %s", arg);
+            Msg.send(player, " &cPlayer not found: %s", arg);
             return true;
         }
         else if(command.equalsIgnoreCase("highscore") || command.equalsIgnoreCase("hi"))
@@ -1344,11 +1371,11 @@ public class ColorfallGame extends Game implements Listener
     	for(Player p : getOnlinePlayers())
     	{
     		if(!p.equals(player))
-    			Msg.send(p, ChatColor.RED + player.getName() + " had bad timing and lost a life.");
+    			Msg.send(p, " " + ChatColor.RED + player.getName() + " had bad timing and lost a life.");
     	}
     	
     	if(roundState == RoundState.RUNNING || roundState == RoundState.REMOVING_BLOCKS)
-    		Msg.send(player, ChatColor.RED + "You lost a life and are put in spectator mode until this round is over.");
+    		Msg.send(player, ChatColor.RED + " You lost a life and are put in spectator mode until this round is over.");
     }
     
     public void onPlayerElimination(Player player)
@@ -1390,11 +1417,11 @@ public class ColorfallGame extends Game implements Listener
         	{
         		 if(b.getType() != Material.AIR && b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId)
         		 {
-        			 Msg.send(p, ChatColor.GREEN + "That block is " + translateToColor(b.getData()) + ", and it is the right one!");
+        			 Msg.send(p, ChatColor.GREEN + " That block is " + translateToColor(b.getData()) + ", and it is the right one!");
         		 }
         		 else
         		 {
-        			 Msg.send(p, ChatColor.RED + "That block is " + translateToColor(b.getData()) + ". That's not the right one!");
+        			 Msg.send(p, ChatColor.RED + " That block is " + translateToColor(b.getData()) + ". That's not the right one!");
         		 }
         	}
         }
@@ -1456,7 +1483,7 @@ public class ColorfallGame extends Game implements Listener
 	        {
 	        	for(Player pp : getOnlinePlayers())
 	        	{
-	        		Msg.send(pp, ChatColor.GOLD + p.getName() + " used a clock to extend the round!");
+	        		Msg.send(pp, " " + ChatColor.GOLD + p.getName() + " used a clock to extend the round!");
 	        	}
 	        	
 	        	currentRoundDuration += 100;
@@ -1473,13 +1500,13 @@ public class ColorfallGame extends Game implements Listener
 	        		
 	        		for(Player pp : getOnlinePlayers())
 		        	{
-		        		Msg.send(pp, ChatColor.WHITE + p.getName() + " " + ChatColor.DARK_AQUA + "r" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m" + ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + " the colors!");
+		        		Msg.send(pp, " " + ChatColor.WHITE + p.getName() + " " + ChatColor.DARK_AQUA + "r" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m" + ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + " the colors!");
 		        		pp.playSound(pp.getLocation(), Sound.LEVEL_UP, 1, 1);
 		        	}
 	        	}
 	        	else
 	        	{
-	        		Msg.send(p, "You can't use that right now ;)");
+	        		Msg.send(p, " You can't use that right now ;)");
 	        	}
 	        }
         }
@@ -1614,12 +1641,12 @@ public class ColorfallGame extends Game implements Listener
     void showHighscore(Player player, List<Highscore.Entry> entries)
     {
         int i = 1;
-        Msg.send(player, "&b&lColorfall Highscore");
-        Msg.send(player, "&3Rank &fGames &aRounds &9&lWins &3Name");
+        Msg.send(player, " &b&lColorfall Highscore");
+        Msg.send(player, " &3Rank &fGames &aRounds &9&lWins &3Name");
         
         for(Highscore.Entry entry : entries)
         {
-            Msg.send(player, "&3#%02d &f%02d &a%d &9&l%d &3%s", i++, entry.getCount(), entry.getRounds(), entry.getWins(), entry.getName());
+            Msg.send(player, " &3#%02d &f%02d &a%d &9&l%d &3%s", i++, entry.getCount(), entry.getRounds(), entry.getWins(), entry.getName());
         }
     }
 

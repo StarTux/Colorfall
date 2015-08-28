@@ -36,6 +36,7 @@ public class GameMap
 	private boolean lockTime;
 	
 	private World world;
+	private ColorfallGame game;
 	private int chunkRadius;
 	private boolean spawnLocationsRandomized;
 	private int spawnLocationIter = 0;
@@ -46,9 +47,10 @@ public class GameMap
     	byte DataId;
     }
 	
-	public GameMap(int chunkRadius)
+	public GameMap(int chunkRadius, ColorfallGame game)
 	{
 		this.chunkRadius = chunkRadius;
+		this.game = game;
 	}
 	
 	public int getStartingTime()
@@ -164,7 +166,15 @@ public class GameMap
 	public Location dealSpawnLocation()
     {
     	if(spawnLocations.isEmpty())
+    	{
+    		if(game.debug)
+    		{
+    			game.getLogger().warning("No [SPAWN] points were set. Falling back to world spawn.");
+    			game.debugStrings.add("No [SPAWN] points were set.");
+    		}
+    		
     		return world.getSpawnLocation();
+    	}
     	
         if(!spawnLocationsRandomized)
         {
@@ -359,6 +369,25 @@ public class GameMap
     {
     	int numberOfBlocks = replacedBlocks.size();
     	int numberOfColors = colorPool.size();
+    	
+    	if(numberOfColors == 0 || numberOfBlocks == 0)
+    	{
+    		game.denyStart = true;
+    		
+    		if(game.debug)
+    		{
+    			game.getLogger().warning("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
+    			
+    			if(numberOfBlocks == 0)
+    				game.debugStrings.add("No [BLOCK] blocks were configured.");
+    			
+    			if(numberOfColors == 0)
+    				game.debugStrings.add("No [COLOR] blocks were configured.");
+    		}
+    		
+    		return;
+    	}
+    	
     	int ofEachColor = numberOfBlocks / numberOfColors;
     	
     	// Shuffle the list of blocks a bit to get some randomization.
