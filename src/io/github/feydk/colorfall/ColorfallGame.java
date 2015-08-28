@@ -67,6 +67,8 @@ public class ColorfallGame extends Game implements Listener
     long stateTicks;
     long roundTicks;
     long winTicks = -1;
+    boolean disallowRandomize;
+    long randomizeCooldown = 0;
             
     private GameScoreboard scoreboard;
     private GameMap map;
@@ -83,7 +85,7 @@ public class ColorfallGame extends Game implements Listener
     private int lives;
     
     // Level config, sent from the framework.
-    private String mapID = "Default";
+    private String mapID = "Classic";
     private String mapPath;
     boolean debug = false;
     
@@ -384,8 +386,7 @@ public class ColorfallGame extends Game implements Listener
 		}
 		
 		GameState newState = null;
-		
-		
+				
 		if(state != GameState.INIT && state != GameState.WAIT_FOR_PLAYERS && state != GameState.END)
 		{
 			// Check if only one player is left.
@@ -439,6 +440,9 @@ public class ColorfallGame extends Game implements Listener
 				winnerName = null;
 				newState = GameState.END;
 			}
+			
+			if(randomizeCooldown > 0)
+				randomizeCooldown--;
 		}
 		
 		// Check for disconnects.
@@ -506,10 +510,12 @@ public class ColorfallGame extends Game implements Listener
     			
     			for(Player player : getOnlinePlayers())
     			{
+    				giveStartingItems(player);
+    				
     				GamePlayer gp = getGamePlayer(player);
     				
     				if(!gp.joinedAsSpectator())
-    				{    				
+    				{
     					makeMobile(player);
     					player.playSound(player.getEyeLocation(), Sound.WITHER_SPAWN, 1f, 1f);
     					count++;
@@ -517,7 +523,25 @@ public class ColorfallGame extends Game implements Listener
     			}
     			
     			if(count > 1)
+    			{
     				moreThanOnePlayed = true;
+    			}
+    			else
+    			{
+    				// If it's a single player game not in debug mode, reduce lives to 1.
+    				if(!debug)
+    				{
+	    				for(Player player : getOnlinePlayers())
+	        			{
+	        				GamePlayer gp = getGamePlayer(player);
+	        				
+	        				if(!gp.joinedAsSpectator())
+	        				{
+	        					gp.setLives(1);
+	        				}
+	        			}
+    				}
+    			}
     			
     			break;
     		case END:
@@ -553,16 +577,19 @@ public class ColorfallGame extends Game implements Listener
     			currentRoundIdx++;
     			scoreboard.setTitle(ChatColor.GREEN + "Round " + currentRoundIdx);
     			setColorForRound();
+    			disallowRandomize = false;
     			
     			Round round = getRound(currentRoundIdx);
     			currentRoundDuration = round.getDuration();
-    			world.setPVP(round.getPvp());
+    			
+    			// If single player game not in debug mode, disable pvp.
+    			if(!moreThanOnePlayed && !debug)
+    				world.setPVP(false);
+    			else
+    				world.setPVP(round.getPvp());
     			
     			for(Player player : getOnlinePlayers())
     			{
-    				//player.setMaxHealth(6);
-    				
-    				
     				GamePlayer gp = getGamePlayer(player);
     				
     				if(gp.isAlive() && gp.isPlayer())
@@ -584,25 +611,6 @@ public class ColorfallGame extends Game implements Listener
     						player.addPotionEffect(effect);
     	    			}
     					
-    					// Check if player has a feather (he could have thrown it away). If not, give him one.
-    					if(!player.getInventory().contains(Material.FEATHER))
-    					{
-    						ItemStack feather = new ItemStack(Material.FEATHER);
-    						ItemMeta meta = feather.getItemMeta();
-    						meta.setDisplayName("Color checker");
-    						
-    						List<String> lore = new ArrayList<String>();
-    						lore.add(ChatColor.DARK_AQUA + "Use this feather on a");
-    						lore.add(ChatColor.DARK_AQUA + "colored block to check");
-    						lore.add(ChatColor.DARK_AQUA + "the color of the block.");
-    						
-    						meta.setLore(lore);
-    						
-    						feather.setItemMeta(meta);
-    						
-    						player.getInventory().addItem(feather);
-    					}
-    					
     					if(player.getGameMode() == GameMode.SPECTATOR)
     					{
     						player.teleport(gp.getSpawnLocation());
@@ -611,7 +619,7 @@ public class ColorfallGame extends Game implements Listener
     				}
     				
     				// Announce pvp and color.
-    				Title.show(player, (round.getPvp() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase());
+    				Title.show(player, (world.getPVP() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase());
     			}
     			
     			break;
@@ -828,7 +836,7 @@ public class ColorfallGame extends Game implements Listener
     		scoreboard.refreshTitle(roundTimeLeft);
     		scoreboard.updatePlayers();
     		
-    		String actionMsg = (round.getPvp() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
+    		String actionMsg = (world.getPVP() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
     		
     		// If it's night time or if we're in the end, use white color.
     		if(world.getTime() >= 13000 || world.getBiome(255, 255) == Biome.SKY)
@@ -847,6 +855,7 @@ public class ColorfallGame extends Game implements Listener
 				// Countdown 3 seconds before round ends.
 				if(seconds > 0 && seconds <= 3)
 				{
+					disallowRandomize = true;
 					Title.show(player, "", "" + ChatColor.RED + seconds);
 					player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)seconds));
 				}
@@ -863,12 +872,13 @@ public class ColorfallGame extends Game implements Listener
 			// Handle randomize events.
 			if(round.getRandomize() && !currentRoundRandomized)
 			{
-				// Fire this about 2 seconds before we're half way through the round.
+				// Fire this about 2 seconds before we're half way through the round, but no later than 2 seconds after half way.
 				// TODO: the 2 seconds works with 15 second rounds. Should probably be made more dynamic or configurable.
-				if(roundTimeLeft - 40 <= Math.round(currentRoundDuration / 2))
+				if(roundTimeLeft - 40 <= Math.round(currentRoundDuration / 2) && roundTimeLeft + 40 >= Math.round(currentRoundDuration / 2) && randomizeCooldown <= 0)
 				{
 					map.randomizeBlocks();
-					currentRoundRandomized = true;					
+					currentRoundRandomized = true;
+					randomizeCooldown = 5 * 20;
 					
 					String title = ChatColor.WHITE + "" + ChatColor.DARK_AQUA + "R" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m";
 					title += ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + "!";
@@ -909,7 +919,7 @@ public class ColorfallGame extends Game implements Listener
 	    		}
 	    		else
 	    		{
-    				Title.show(player, ChatColor.GREEN + "Round " + (currentRoundIdx + 1) + " starts in", seconds + " seconds");
+    				Title.show(player, "" + seconds, ChatColor.GREEN + "Round " + (currentRoundIdx + 1));
     				player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)seconds));
 	    		}
     		}
@@ -1000,11 +1010,6 @@ public class ColorfallGame extends Game implements Listener
     	
     	scoreboard.addPlayer(player);
     	
-    	String credits = map.getCredits();
-    	
-    	if(!credits.isEmpty())
-    		Msg.send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
-    	
     	if(debug)
     	{
     		if(debugStrings.size() > 0)
@@ -1042,12 +1047,23 @@ public class ColorfallGame extends Game implements Listener
     	{
     		@Override public void run()
     		{
-    			//showHighscore(player);
-    			List<Object> list = new ArrayList<>();
+    			showHighscore(player);
+    			
+    			Msg.send(player, " ");
+    			
+    			String credits = map.getCredits();
+    	    	
+    	    	if(!credits.isEmpty())
+    	    		Msg.send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
+    			
+    	    	Msg.send(player, " ");
+    	    	
+    			/*List<Object> list = new ArrayList<>();
 				list.add(Msg.format(" &2View the highscore by typing "));
 				list.add(button("&a/hi", "&3View the highscore", "/hi"));
-				
-				Msg.sendRaw(player, list);
+				Msg.sendRaw(player, list);*/
+    			
+    			
     		}
     	}.runTaskLater(MinigamesPlugin.getInstance(), 20 * 3);
     }
@@ -1261,6 +1277,29 @@ public class ColorfallGame extends Game implements Listener
     		if(event.getCause() != DamageCause.ENTITY_ATTACK && event.getCause() != DamageCause.PROJECTILE)
     			event.setCancelled(true);
     	}
+    }
+    
+    private void giveStartingItems(Player player)
+    {    	
+    	// Give feather.
+		ItemStack feather = new ItemStack(Material.FEATHER);
+		ItemMeta meta = feather.getItemMeta();
+		meta.setDisplayName("Color checker");
+		
+		List<String> lore = new ArrayList<String>();
+		lore.add(ChatColor.DARK_AQUA + "Use this feather on a");
+		lore.add(ChatColor.DARK_AQUA + "colored block to check");
+		lore.add(ChatColor.DARK_AQUA + "the color of the block.");
+		
+		meta.setLore(lore);
+		
+		feather.setItemMeta(meta);
+		
+		player.getInventory().setItem(1, feather);
+		
+		// Give one dye.
+		player.getInventory().setItem(2, map.getDye());
+		
     }
     
     @SuppressWarnings("deprecation")
@@ -1490,24 +1529,33 @@ public class ColorfallGame extends Game implements Listener
 	        	
 	        	reduceItemInHand(p);
 	        }
+	        // The randomizer.
 	        else if(p.getItemInHand().getType() == Material.EMERALD && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
 	        {
-	        	// Can only be used if round isn't already set to have randomize.
-	        	if(!getRound(currentRoundIdx).getRandomize())
-	        	{
-	        		map.randomizeBlocks();
-	        		reduceItemInHand(p);
-	        		
-	        		for(Player pp : getOnlinePlayers())
-		        	{
-		        		Msg.send(pp, " " + ChatColor.WHITE + p.getName() + " " + ChatColor.DARK_AQUA + "r" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m" + ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + " the colors!");
-		        		pp.playSound(pp.getLocation(), Sound.LEVEL_UP, 1, 1);
-		        	}
-	        	}
-	        	else
-	        	{
-	        		Msg.send(p, " You can't use that right now ;)");
-	        	}
+        		if(disallowRandomize)
+        		{
+        			Msg.send(p, " " + ChatColor.RED + "You can't use the randomizer this late in the round!");
+        		}
+        		else
+        		{
+        			if(randomizeCooldown <= 0)
+        			{
+	        			randomizeCooldown = 5 * 20;
+	        			
+	        			map.randomizeBlocks();
+		        		reduceItemInHand(p);
+			        		
+		        		for(Player pp : getOnlinePlayers())
+			        	{
+			        		Msg.send(pp, " " + ChatColor.WHITE + p.getName() + " " + ChatColor.DARK_AQUA + "r" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m" + ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + " the colors!");
+			        		pp.playSound(pp.getLocation(), Sound.LEVEL_UP, 1, 1);
+			        	}
+        			}
+        			else
+        			{
+        				Msg.send(p, " " + ChatColor.RED + "Randomize is on cooldown for another " + (randomizeCooldown / 20) + " seconds.");
+        			}
+        		}
 	        }
         }
     }
@@ -1548,6 +1596,44 @@ public class ColorfallGame extends Game implements Listener
 			return "black";
     	
     	return "";
+    }
+    
+    public byte translateToDataId(byte value)
+    {
+    	if(value == 0)			// white
+    		return 15;
+    	else if(value == 1)		// orange
+    		return 14;
+    	else if(value == 2)		// magenta
+    		return 13;
+    	else if(value == 3)		// light blue
+    		return 12;
+    	else if(value == 4)		// yellow
+    		return 11;
+    	else if(value == 5)		// lime
+    		return 10;
+    	else if(value == 6)		// pink
+    		return 9;
+    	else if(value == 7)		// gray
+    		return 8;
+    	else if(value == 8)		// light gray
+    		return 7;
+    	else if(value == 9)		// cyan
+    		return 6;
+    	else if(value == 10)	// purple
+    		return 5;
+    	else if(value == 11)	// blue
+    		return 4;
+    	else if(value == 12)	// brown
+    		return 3;
+    	else if(value == 13)	// green
+    		return 2;
+    	else if(value == 14)	// red
+    		return 1;
+    	else if(value == 15)	// black
+    		return 0;
+    		
+    	return 0;
     }
     
     private ChatColor translateToChatColor(byte dataid)

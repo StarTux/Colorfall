@@ -12,6 +12,7 @@ import java.util.Set;
 
 import javafx.geometry.Point2D;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -20,6 +21,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.util.Vector;
 
@@ -483,4 +486,27 @@ public class GameMap
     		}
     	}
     }
+    
+    @SuppressWarnings("deprecation")
+	public ItemStack getDye()
+	{
+		ColorBlock cb = getRandomFromColorPool();
+		byte dataid = game.translateToDataId(cb.DataId);
+		
+		ItemStack newStack = new ItemStack(351, 1, (short)0, dataid);
+		ItemMeta meta = newStack.getItemMeta();
+		
+		List<String> lore = new ArrayList<String>();
+		lore.add(ChatColor.DARK_AQUA + "Turn a colored block");
+		lore.add(ChatColor.DARK_AQUA + "into this color.");
+		lore.add(ChatColor.DARK_AQUA + "The block will reset");
+		lore.add(ChatColor.DARK_AQUA + "when the round is over.");
+		
+		meta.setLore(lore);
+		meta.setDisplayName(game.translateToColor(cb.DataId).toUpperCase());
+		
+		newStack.setItemMeta(meta);
+		
+		return newStack;
+	}
 }
