@@ -455,7 +455,8 @@ public class GameMap
                         	cb.DataId = b.getData();
         	            	
         	            	removedBlocks.put(b.getLocation(), cb);
-        	            	b.setType(Material.AIR);
+        	            	//b.setType(Material.AIR);
+        	            	b.setTypeId(Material.AIR.getId(), false);
         	            }
         	        }
         	    }
