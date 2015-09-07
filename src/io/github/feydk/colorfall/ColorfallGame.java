@@ -45,6 +45,8 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -1147,6 +1149,16 @@ public class ColorfallGame extends Game implements Listener
         	gp.recordHighscore();
     }
     
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerTeleport(PlayerTeleportEvent event)
+    {
+    	if(event.getCause() != TeleportCause.ENDER_PEARL)
+    		return;
+    				
+    	if(!map.isBlockWithinCuboid(event.getTo().getBlock()))
+    		event.setCancelled(true);
+    }
+    
     private void makeImmobile(Player player, Location location)
     {
     	if(!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 4.0)
@@ -1514,6 +1526,8 @@ public class ColorfallGame extends Game implements Listener
 	        	}
 	        	
 	        	event.getClickedBlock().setData(dataid);
+	        	
+	        	p.getWorld().playSound(event.getClickedBlock().getLocation(), Sound.SHEEP_SHEAR, 1, 1);
 
 	        	reduceItemInHand(p);
 	        }

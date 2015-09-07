@@ -28,13 +28,17 @@ import org.bukkit.util.Vector;
 
 public class GameMap
 {
-	private Set<ColorBlock> coloredBlocks = new HashSet<>();
-	private List<ColorBlock> colorPool = new ArrayList<>();
-	private Set<Point2D> processedChunks = new HashSet<>();
+	// The blocks to replace with colors (placeholder blocks).
+	private Set<ColorBlock> coloredBlocks = new HashSet<ColorBlock>();
+	// The list of possible colors for the map.
+	private List<ColorBlock> colorPool = new ArrayList<ColorBlock>();
+	// A list of blocks that have been replaced. Ie. the blocks you stand on.
 	private List<Block> replacedBlocks = new ArrayList<>();
+	// A list of blocks that are removed (and then restored).
 	private Map<Location, ColorBlock> removedBlocks = new HashMap<Location, ColorBlock>();
-	private List<Location> spawnLocations = new ArrayList<>();
-	private List<String> credits = new ArrayList<>();
+	private Set<Point2D> processedChunks = new HashSet<Point2D>();
+	private List<Location> spawnLocations = new ArrayList<Location>();
+	private List<String> credits = new ArrayList<String>();
 	private int time;
 	private boolean lockTime;
 	
@@ -43,6 +47,10 @@ public class GameMap
 	private int chunkRadius;
 	private boolean spawnLocationsRandomized;
 	private int spawnLocationIter = 0;
+	
+	// Stuff used for boundaries.
+	private List<Location> boundaries = new ArrayList<Location>();
+	private double minX, minZ, minY, maxX, maxZ, maxY;
 	
 	class ColorBlock
     {
@@ -125,32 +133,6 @@ public class GameMap
 		}
 	}
 	
-	/*public void spawnMobs(Map<EntityType, Double> mobs)
-	{
-		int numberOfBlocks = replacedBlocks.size();
-		List<Block> spawnedBlocks = new ArrayList<Block>(); 
-		
-		for(Entry<EntityType, Double> entry : mobs.entrySet())
-		{
-			double numberOfSpawns = ((double)numberOfBlocks / 100D) * entry.getValue();
-			
-			Block spawnBlock;
-			
-			for(int i = 1; i <= numberOfSpawns; i++)
-			{
-				// Pick a random colored block to spawn on. Must be unique.
-				while(spawnedBlocks.contains((spawnBlock = getRandomFromReplaced())))
-				{
-					// do nothing
-				}
-												
-				world.spawnEntity(spawnBlock.getLocation().add(0, 1, 0), entry.getKey());
-				 
-				spawnedBlocks.add(spawnBlock);
-			}
-		}
-	}*/
-	
 	@SuppressWarnings("deprecation")
 	public boolean isColoredBlock(Block block)
 	{
@@ -214,6 +196,46 @@ public class GameMap
             }
         }
         
+        // Determine boundaries.
+        if(boundaries.size() == 2)
+        {
+        	Location b1 = boundaries.get(0);
+        	Location b2 = boundaries.get(1);
+        	
+        	if(b1.getX() >= b2.getX())
+        	{
+        		minX = b2.getX();
+        		maxX = b1.getX();
+        	}
+        	else
+        	{
+        		minX = b1.getX();
+        		maxX = b2.getX();
+        	}
+        	
+        	if(b1.getY() >= b2.getY())
+        	{
+        		minY = b2.getY();
+        		maxY = b1.getY();
+        	}
+        	else
+        	{
+        		minY = b1.getY();
+        		maxY = b2.getY();
+        	}
+        	
+        	if(b1.getZ() >= b2.getZ())
+        	{
+        		minZ = b2.getZ();
+        		maxZ = b1.getZ();
+        	}
+        	else
+        	{
+        		minZ = b1.getZ();
+        		maxZ = b2.getZ();
+        	}
+        }
+        
         // Then crawl the map again, this time finding all the blocks that needs to be replaced with color blocks.
         for(Point2D point : processedChunks)
         {
@@ -275,6 +297,7 @@ public class GameMap
                         state.getBlock().setType(Material.AIR);
                         attachedBlock.setType(Material.AIR);
                     }
+                    // Spawn locations.
                     else if(firstLine.equals("[spawn]"))
                     {
                     	Location location = state.getBlock().getLocation().add(.5, .5, .5);
@@ -284,6 +307,16 @@ public class GameMap
                     	
                         state.getBlock().setType(Material.AIR);
                     }
+                    // Boundaries.
+                    else if(firstLine.equals("[boundary]"))
+                    {
+                    	Location location = state.getBlock().getLocation();
+                        boundaries.add(location);
+                    	
+                        state.getBlock().setType(Material.AIR);
+                        attachedBlock.setType(Material.AIR);
+                    }
+                    // Credits.
                     else if(firstLine.equals("[credits]"))
                     {
                     	for(int i = 1; i < 4; ++i)
@@ -295,8 +328,9 @@ public class GameMap
                         }
                     	
                         state.getBlock().setType(Material.AIR);
-                        attachedBlock.setType(Material.AIR);
+                        //attachedBlock.setType(Material.AIR);
                     }
+                    // Time.
                     else if(firstLine.equals("[time]"))
                     {
                     	String t = signBlock.getLine(1);
@@ -323,7 +357,7 @@ public class GameMap
                     	}
                     	
                         state.getBlock().setType(Material.AIR);
-                        attachedBlock.setType(Material.AIR);
+                        //attachedBlock.setType(Material.AIR);
                     }
                 }
             }
@@ -335,8 +369,7 @@ public class GameMap
 	private void findBlocksToBeReplaced(int x, int z)
     {
     	Chunk chunk = world.getChunkAt(x, z);
-    	//chunk.load();
-    	
+    	    	
     	for(int cx = 0; cx <= 16; cx++)
     	{
     	    for(int cy = 0; cy <= 256; cy++)
@@ -391,6 +424,21 @@ public class GameMap
     		return;
     	}
     	
+    	// Need to have exactly two boundaries.
+    	if(boundaries.size() > 0 && boundaries.size() != 2)
+    	{
+    		game.denyStart = true;
+    		
+    		if(game.debug)
+    		{
+    			game.getLogger().warning("Map boundaries misconfigured. Skipping the part that replaces blocks in the map");
+    			
+    			game.debugStrings.add("There must be two and only two [BOUNDARY] signs.");
+    		}
+    		
+    		return;
+    	}
+    	
     	int ofEachColor = numberOfBlocks / numberOfColors;
     	
     	// Shuffle the list of blocks a bit to get some randomization.
@@ -403,7 +451,7 @@ public class GameMap
     		{
     			// Color the next block.
     			Block toColor = replacedBlocks.get(count);
-    			toColor.setTypeId(color.TypeId);
+    			toColor.setTypeId(color.TypeId, false);
     			toColor.setData((byte)color.DataId);
     			
     			count++;
@@ -421,7 +469,7 @@ public class GameMap
     			ColorBlock color = colorPool.get(r.nextInt(numberOfColors));
     			
     			Block toColor = replacedBlocks.get(i);
-    			toColor.setTypeId(color.TypeId);
+    			toColor.setTypeId(color.TypeId, false);
     			toColor.setData((byte)color.DataId);
     			
     			count++;
@@ -434,7 +482,7 @@ public class GameMap
 	public void removeBlocks(ColorBlock currentColor)
     {
     	removedBlocks.clear();
-    	
+    	    	
     	// I know, I know. Point has X and Y which is conceptually totally wrong in this context since Y is actually the Z coordinate, but it works ;)
     	for(Point2D point : processedChunks)
     	{
@@ -446,10 +494,16 @@ public class GameMap
         	    {
         	        for(int cz = 0; cz <= 16; cz++)
         	        {
-        	            Block b = chunk.getBlock(cx, cy, cz);
-        	            
-        	            if(b.getType() != Material.AIR && !(b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId))
-        	            {
+        	        	Block b = chunk.getBlock(cx, cy, cz);
+        	        	boolean isOk = true;
+        	        			
+        	        	if(boundaries.size() > 0)
+        	        	{
+        	        		isOk = isBlockWithinCuboid(b);
+        	        	}
+        	        	
+        	        	if(isOk && b.getType() != Material.AIR && !(b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId))
+        	        	{
         	            	ColorBlock cb = new ColorBlock();
         	            	cb.TypeId = b.getTypeId();
                         	cb.DataId = b.getData();
@@ -471,7 +525,7 @@ public class GameMap
     	{
     		Block b = world.getBlockAt(entry.getKey());
     		
-    		b.setTypeId(entry.getValue().TypeId);
+    		b.setTypeId(entry.getValue().TypeId, false);
     		b.setData(entry.getValue().DataId);
     	}
     	
@@ -486,6 +540,20 @@ public class GameMap
     				b.setData(data.get(0).asByte());
     		}
     	}
+    }
+    
+    public boolean isBlockWithinCuboid(Block b)
+    {
+        if(boundaries.size() > 0)
+        {    	
+        	double x = b.getX();
+        	double y = b.getY();
+        	double z = b.getZ();
+        
+        	return new Vector(x, y, z).isInAABB(new Vector(minX, minY, minZ), new Vector(maxX, maxY, maxZ));
+        }
+        
+        return true;
     }
     
     @SuppressWarnings("deprecation")
