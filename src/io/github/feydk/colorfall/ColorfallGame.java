@@ -1469,7 +1469,7 @@ public class ColorfallGame extends Game implements Listener
         
         // If player pushes a button we disable NCP fly protect for 1 second, to cater for slime block launchers. Do a radius because more people may be standing on the same block.
         // Note: may need to add support for other triggers, like pressure plates and stuff.
-        if(event.getClickedBlock().getType() == Material.STONE_BUTTON && event.getAction() == Action.RIGHT_CLICK_BLOCK)
+        if(event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.STONE_BUTTON && event.getAction() == Action.RIGHT_CLICK_BLOCK)
         {
         	List<Entity> jumpers = new ArrayList<Entity>();
         	jumpers.add(p);
