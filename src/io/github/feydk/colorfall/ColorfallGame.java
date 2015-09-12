@@ -1,5 +1,7 @@
 package io.github.feydk.colorfall;
 
+import fr.neatmonster.nocheatplus.checks.CheckType;
+import fr.neatmonster.nocheatplus.hooks.NCPExemptionManager;
 import io.github.feydk.colorfall.GameMap.ColorBlock;
 
 import java.util.ArrayList;
@@ -34,11 +36,13 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
@@ -70,6 +74,7 @@ public class ColorfallGame extends Game implements Listener
     long roundTicks;
     long winTicks = -1;
     boolean disallowRandomize;
+    boolean disallowPistons;
     long randomizeCooldown = 0;
             
     private GameScoreboard scoreboard;
@@ -212,8 +217,6 @@ public class ColorfallGame extends Game implements Listener
     	    	
     	for(String key : config.getKeys(false))
     	{
-    		//debug("Parsing " + key);
-    		
     		long roundDuration = duration;
     		double roundPvp = pvp;
     		double roundRandomize = randomize;
@@ -580,7 +583,7 @@ public class ColorfallGame extends Game implements Listener
     			scoreboard.setTitle(ChatColor.GREEN + "Round " + currentRoundIdx);
     			setColorForRound();
     			disallowRandomize = false;
-    			
+    			    			
     			Round round = getRound(currentRoundIdx);
     			currentRoundDuration = round.getDuration();
     			
@@ -633,6 +636,7 @@ public class ColorfallGame extends Game implements Listener
     		// Restore blocks.
     		case RESTORING_BLOCKS:
     			map.restoreBlocks(paintedBlocks);
+    			disallowPistons = false;
     			break;
     		// Round is over, wait for next round.
     		case OVER:
@@ -860,6 +864,9 @@ public class ColorfallGame extends Game implements Listener
 					disallowRandomize = true;
 					Title.show(player, "", "" + ChatColor.RED + seconds);
 					player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)seconds));
+					
+					if(seconds <= 2)
+						disallowPistons = true;
 				}
 				else if(seconds == 0)
 				{
@@ -1458,8 +1465,33 @@ public class ColorfallGame extends Game implements Listener
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event)
     {
-        Player p = event.getPlayer();
-
+        final Player p = event.getPlayer();
+        
+        // If player pushes a button we disable NCP fly protect for 1 second, to cater for slime block launchers. Do a radius because more people may be standing on the same block.
+        // Note: may need to add support for other triggers, like pressure plates and stuff.
+        if(event.getClickedBlock().getType() == Material.STONE_BUTTON && event.getAction() == Action.RIGHT_CLICK_BLOCK)
+        {
+        	List<Entity> jumpers = new ArrayList<Entity>();
+        	jumpers.add(p);
+        	jumpers.addAll(p.getNearbyEntities(10, 10, 10));
+        	
+        	for(Entity e : jumpers)
+        	{
+        		if(e instanceof Player)
+        		{
+		        	NCPExemptionManager.exemptPermanently(p, CheckType.MOVING_SURVIVALFLY);
+		        	
+		        	new BukkitRunnable()
+		        	{
+		        		@Override public void run()
+		        		{
+		        			NCPExemptionManager.unexempt(p, CheckType.MOVING_SURVIVALFLY);
+		        		}
+		        	}.runTaskLater(MinigamesPlugin.getInstance(), 20);
+        		}
+        	}
+        }
+        
         if(p.getItemInHand().getType() == Material.FEATHER && event.getAction() == Action.RIGHT_CLICK_BLOCK)
         {
         	Block b = event.getClickedBlock();
@@ -1518,6 +1550,10 @@ public class ColorfallGame extends Game implements Listener
 				else if(dye == 0)	// black
 					dataid = 15;
 	        	
+	        	// Don't bother if block is already same color as the dye.
+	        	if(event.getClickedBlock().getData() == dataid)
+	        		return;
+	        	
 	        	// Only register the original color once, in case a block is dyed multiple times.
 	        	if(!paintedBlocks.contains(event.getClickedBlock()))
 	        	{
@@ -1540,6 +1576,9 @@ public class ColorfallGame extends Game implements Listener
 	        	}
 	        	
 	        	currentRoundDuration += 100;
+	        	
+	        	// Allow pistons again since there is now at least 5 seconds left.
+	        	disallowPistons = false;
 	        	
 	        	reduceItemInHand(p);
 	        }
@@ -1573,6 +1612,20 @@ public class ColorfallGame extends Game implements Listener
 	        }
         }
     }
+    
+    @EventHandler
+    public void onPistonExtend(BlockPistonExtendEvent event)
+    {
+    	if(disallowPistons)
+    		event.setCancelled(true);
+    }
+    
+    /*@EventHandler
+    public void onPistonRetract(BlockPistonRetractEvent event)
+    {
+    	if(disallowPistons)
+    		event.setCancelled(true);
+    }*/
     
     public String translateToColor(byte dataid)
     {

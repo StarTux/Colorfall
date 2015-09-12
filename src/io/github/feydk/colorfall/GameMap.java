@@ -2,11 +2,8 @@ package io.github.feydk.colorfall;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
@@ -34,8 +31,10 @@ public class GameMap
 	private List<ColorBlock> colorPool = new ArrayList<ColorBlock>();
 	// A list of blocks that have been replaced. Ie. the blocks you stand on.
 	private List<Block> replacedBlocks = new ArrayList<>();
+	
 	// A list of blocks that are removed (and then restored).
-	private Map<Location, ColorBlock> removedBlocks = new HashMap<Location, ColorBlock>();
+	private Set<BlockState> removedBlocksSolid = new HashSet<BlockState>();
+	private Set<BlockState> removedBlocksUnsolid = new HashSet<BlockState>();
 	private Set<Point2D> processedChunks = new HashSet<Point2D>();
 	private List<Location> spawnLocations = new ArrayList<Location>();
 	private List<String> credits = new ArrayList<String>();
@@ -481,7 +480,8 @@ public class GameMap
     @SuppressWarnings("deprecation")
 	public void removeBlocks(ColorBlock currentColor)
     {
-    	removedBlocks.clear();
+    	removedBlocksSolid.clear();
+    	removedBlocksUnsolid.clear();
     	    	
     	// I know, I know. Point has X and Y which is conceptually totally wrong in this context since Y is actually the Z coordinate, but it works ;)
     	for(Point2D point : processedChunks)
@@ -492,9 +492,15 @@ public class GameMap
         	{
         	    for(int cy = 0; cy <= 256; cy++)
         	    {
-        	        for(int cz = 0; cz <= 16; cz++)
+        	        // Do this twice; first time for unsolid blocks, second time for solid blocks.
+        	    	
+        	    	for(int cz = 0; cz <= 16; cz++)
         	        {
         	        	Block b = chunk.getBlock(cx, cy, cz);
+        	        	
+        	        	if(b.getType().isSolid())
+        	        		continue;
+        	        	
         	        	boolean isOk = true;
         	        			
         	        	if(boundaries.size() > 0)
@@ -504,12 +510,30 @@ public class GameMap
         	        	
         	        	if(isOk && b.getType() != Material.AIR && !(b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId))
         	        	{
-        	            	ColorBlock cb = new ColorBlock();
-        	            	cb.TypeId = b.getTypeId();
-                        	cb.DataId = b.getData();
-        	            	
-        	            	removedBlocks.put(b.getLocation(), cb);
-        	            	//b.setType(Material.AIR);
+        	        		removedBlocksUnsolid.add(b.getState());
+        	        		
+        	            	b.setTypeId(Material.AIR.getId(), false);
+        	            }
+        	        }
+        	    	
+        	    	for(int cz = 0; cz <= 16; cz++)
+        	        {
+        	        	Block b = chunk.getBlock(cx, cy, cz);
+        	        	
+        	        	if(!b.getType().isSolid())
+        	        		continue;
+        	        	
+        	        	boolean isOk = true;
+        	        			
+        	        	if(boundaries.size() > 0)
+        	        	{
+        	        		isOk = isBlockWithinCuboid(b);
+        	        	}
+        	        	
+        	        	if(isOk && b.getType() != Material.AIR && !(b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId))
+        	        	{
+        	        		removedBlocksSolid.add(b.getState());
+        	        		
         	            	b.setTypeId(Material.AIR.getId(), false);
         	            }
         	        }
@@ -521,12 +545,14 @@ public class GameMap
     @SuppressWarnings("deprecation")
 	public void restoreBlocks(List<Block> paintedBlocks)
     {
-    	for(Entry<Location, ColorBlock> entry : removedBlocks.entrySet())
+    	for(BlockState entry : removedBlocksSolid)
     	{
-    		Block b = world.getBlockAt(entry.getKey());
-    		
-    		b.setTypeId(entry.getValue().TypeId, false);
-    		b.setData(entry.getValue().DataId);
+    		entry.update(true, false);
+    	}
+    	
+    	for(BlockState entry : removedBlocksUnsolid)
+    	{
+    		entry.update(true, false);
     	}
     	
     	// If any blocks were painted by players, restore their original color.
