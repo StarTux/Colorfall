@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -34,10 +35,13 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -47,6 +51,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -76,6 +81,7 @@ public class ColorfallGame extends Game implements Listener
     boolean disallowRandomize;
     boolean disallowPistons;
     long randomizeCooldown = 0;
+    private String joinRandomStat;
             
     private GameScoreboard scoreboard;
     private GameMap map;
@@ -112,7 +118,7 @@ public class ColorfallGame extends Game implements Listener
     
     // Highscore stuff.
     final UUID gameUuid = UUID.randomUUID();
-    final Highscore highscore = new Highscore();
+    //final Highscore highscore = new Highscore();
     
     public ColorfallGame()
     {
@@ -171,6 +177,44 @@ public class ColorfallGame extends Game implements Listener
     	
     	loadPowerups();
     	loadRounds();
+    	
+    	System.out.println("Setting up Colorfall player stats");
+		
+		final String sql =
+		"CREATE TABLE IF NOT EXISTS `colorfall_playerstats` (" +
+		" `id` INT(11) NOT NULL AUTO_INCREMENT," +
+		" `game_uuid` VARCHAR(40) NOT NULL," +
+		" `player_uuid` VARCHAR(40) NOT NULL," +
+		" `player_name` VARCHAR(16) NOT NULL," +
+		" `start_time` DATETIME NOT NULL," +
+		" `end_time` DATETIME NOT NULL," +
+		" `rounds_played` INT(11) NOT NULL," +
+		" `rounds_survived` INT(11) NOT NULL," +
+		" `deaths` INT(11) NOT NULL," +
+		" `lives_left` INT(11) NOT NULL," +
+		" `superior_win` INT(11) NOT NULL," +
+		" `dyes_used` INT(11) NOT NULL," +
+		" `randomizers_used` INT(11) NOT NULL," +
+		" `clocks_used` INT(11) NOT NULL," +
+		" `enderpearls_used` INT(11) NOT NULL," +
+		" `snowballs_used` INT(11) NOT NULL," +
+		" `snowballs_hit` INT(11) NOT NULL," +
+		" `winner` INT(11) NOT NULL," +
+		" `sp_game` BOOLEAN NOT NULL," +
+		" `map_id` VARCHAR(40) NULL, " +
+		" PRIMARY KEY (`id`)" +
+		")";
+		
+		try
+		{
+			MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql).execute();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		System.out.println("Done setting up Colorfall player stats");
     	    	    	    	
 		// Load the world, with onWorldsLoaded() as callback
     	WorldLoader.loadWorlds(this, new BukkitFuture<WorldLoader>()
@@ -347,7 +391,7 @@ public class ColorfallGame extends Game implements Listener
 		
 		scoreboard = new GameScoreboard();
 		
-		highscore.init();
+		//highscore.init();
 		
 		ready();
     }
@@ -433,7 +477,7 @@ public class ColorfallGame extends Game implements Listener
 							survivor.setEndTime(new Date());
 							
 							if(!debug)
-								survivor.recordHighscore();
+								survivor.recordStats(moreThanOnePlayed, mapID);
 							
 							newState = GameState.END;
 						}
@@ -882,7 +926,7 @@ public class ColorfallGame extends Game implements Listener
 			if(round.getRandomize() && !currentRoundRandomized)
 			{
 				// Fire this about 2 seconds before we're half way through the round, but no later than 2 seconds after half way.
-				// TODO: the 2 seconds works with 15 second rounds. Should probably be made more dynamic or configurable.
+				// Note: the 2 seconds works with 15 second rounds. Should probably be made more dynamic or configurable.
 				if(roundTimeLeft - 40 <= Math.round(currentRoundDuration / 2) && roundTimeLeft + 40 >= Math.round(currentRoundDuration / 2) && randomizeCooldown <= 0)
 				{
 					map.randomizeBlocks();
@@ -1016,6 +1060,7 @@ public class ColorfallGame extends Game implements Listener
     	    	
     	gp.setName(player.getName());
     	gp.setStartTime(new Date());
+    	gp.updateStatsName();
     	
     	scoreboard.addPlayer(player);
     	
@@ -1052,12 +1097,15 @@ public class ColorfallGame extends Game implements Listener
     			gp.setSpectator();
     	}
     	
+    	if(joinRandomStat == null)
+    	{
+    		joinRandomStat = getStatsJson(new Random(System.currentTimeMillis()).nextInt(8));
+    	}
+    	
     	new BukkitRunnable()
     	{
     		@Override public void run()
-    		{
-    			showHighscore(player);
-    			
+    		{    			    			
     			Msg.send(player, " ");
     			
     			String credits = map.getCredits();
@@ -1066,6 +1114,8 @@ public class ColorfallGame extends Game implements Listener
     	    		Msg.send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
     			
     	    	Msg.send(player, " ");
+    	    	
+    	    	sendJsonMessage(player, joinRandomStat);
     	    	
     			/*List<Object> list = new ArrayList<>();
 				list.add(Msg.format(" &2View the highscore by typing "));
@@ -1153,7 +1203,7 @@ public class ColorfallGame extends Game implements Listener
         gp.setEndTime(new Date());
         
         if(!debug)
-        	gp.recordHighscore();
+        	gp.recordStats(moreThanOnePlayed, mapID);
     }
     
     @EventHandler(ignoreCancelled = true)
@@ -1164,6 +1214,8 @@ public class ColorfallGame extends Game implements Listener
     				
     	if(!map.isBlockWithinCuboid(event.getTo().getBlock()))
     		event.setCancelled(true);
+    	else
+    		getGamePlayer(event.getPlayer()).addEnderpearl();
     }
     
     private void makeImmobile(Player player, Location location)
@@ -1234,10 +1286,39 @@ public class ColorfallGame extends Game implements Listener
     
     @SuppressWarnings("deprecation")
 	@EventHandler
+    public void onProjectileThrownEvent(ProjectileLaunchEvent event)
+    {
+    	if(event.getEntity() instanceof Snowball)
+    	{
+    		Snowball snowball = (Snowball)event.getEntity();
+    		LivingEntity entityThrower = snowball.getShooter();
+    		
+    		if(entityThrower instanceof Player)
+    		{
+    			Player playerThrower = (Player)entityThrower;
+    			getGamePlayer(playerThrower).addSnowball();
+    		}
+    	}
+    }
+    
+    @SuppressWarnings("deprecation")
+	@EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event)
     {
     	if(!(event.getEntity() instanceof Player))
     		return;
+    	
+    	if(event.getDamager() instanceof Snowball)
+    	{
+    		Snowball snowball = (Snowball)event.getDamager();
+    		LivingEntity entityThrower = snowball.getShooter();
+    		
+    		if(entityThrower instanceof Player)
+            {
+                Player playerThrower = (Player)entityThrower;
+                getGamePlayer(playerThrower).addSnowballHit();
+            }
+    	}
     	
     	Player player = (Player)event.getEntity();
     	
@@ -1414,7 +1495,27 @@ public class ColorfallGame extends Game implements Listener
         }
         else if(command.equalsIgnoreCase("highscore") || command.equalsIgnoreCase("hi"))
         {
-            showHighscore(player);
+        	int type = 0;
+        	
+        	if(args.length == 1)
+        	{
+        		try
+        		{
+        			type = Integer.parseInt(args[0]);
+        		}
+        		catch(NumberFormatException e)
+        		{}
+        	}
+        	
+            String json = getStatsJson(type);
+            
+            sendJsonMessage(player, json);
+            
+        	//showHighscore(player);
+        }
+        else if(command.equalsIgnoreCase("stats"))
+        {
+        	showStats(player, (args.length == 0 ? player.getName() : args[0]));
         }
         else
         {
@@ -1441,7 +1542,7 @@ public class ColorfallGame extends Game implements Listener
     	getGamePlayer(player).setEndTime(new Date());
     	
     	if(!debug)
-    		getGamePlayer(player).recordHighscore();
+    		getGamePlayer(player).recordStats(moreThanOnePlayed, mapID);
     	
     	for(Player p : getOnlinePlayers())
     	{
@@ -1566,6 +1667,7 @@ public class ColorfallGame extends Game implements Listener
 	        	p.getWorld().playSound(event.getClickedBlock().getLocation(), Sound.SHEEP_SHEAR, 1, 1);
 
 	        	reduceItemInHand(p);
+	        	getGamePlayer(p).addDye();
 	        }
 	        // The clock.
 	        else if(p.getItemInHand().getType() == Material.WATCH && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
@@ -1581,6 +1683,7 @@ public class ColorfallGame extends Game implements Listener
 	        	disallowPistons = false;
 	        	
 	        	reduceItemInHand(p);
+	        	getGamePlayer(p).addClock();
 	        }
 	        // The randomizer.
 	        else if(p.getItemInHand().getType() == Material.EMERALD && (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK))
@@ -1597,6 +1700,7 @@ public class ColorfallGame extends Game implements Listener
 	        			
 	        			map.randomizeBlocks();
 		        		reduceItemInHand(p);
+		        		getGamePlayer(p).addRandomizer();
 			        		
 		        		for(Player pp : getOnlinePlayers())
 			        	{
@@ -1793,20 +1897,324 @@ public class ColorfallGame extends Game implements Listener
     
     void showHighscore(Player player, List<Highscore.Entry> entries)
     {
-        int i = 1;
+        /*int i = 1;
         Msg.send(player, " &b&lColorfall Highscore");
         Msg.send(player, " &3Rank &fGames &aRounds &9&lWins &3Name");
         
         for(Highscore.Entry entry : entries)
         {
             Msg.send(player, " &3#%02d &f%02d &a%d &9&l%d &3%s", i++, entry.getCount(), entry.getRounds(), entry.getWins(), entry.getName());
-        }
+        }*/
     }
 
-    void showHighscore(Player player)
+    /*void showHighscore(Player player)
     {
         List<Highscore.Entry> entries = highscore.list();
         showHighscore(player, entries);
+    }*/
+    
+    String getStatsJson(int type)
+    {
+    	// 0: Top dog (wins, superior wins)
+    	// 1: Top painter (dyes)
+    	// 2: Top manipulators of time
+    	// 3: Top dislocators
+    	// 4: Top trigger happy
+    	// 5: Top randomizers
+    	// 6: Top investigators of the void
+    	// 7: Top contestants
+    	    	    	
+    	String json = "[";
+    	
+    	if(type == 0)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopWinners();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top dogs §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fwith §b" + obj.getGamesWon() + " §fwin" + (obj.getGamesWon() == 1 ? "" : "s") + "\"}, ";
+    			
+    			if(obj.getSuperiorWins() > 0)
+    				json += "{text: \"§f, of which §b" + obj.getSuperiorWins() + " §f" + (obj.getSuperiorWins() == 1 ? "is a" : "are") + " §asuperior win" + (obj.getSuperiorWins() == 1 ? "" : "s") + "\"}, ";
+    			
+    			json += "{text: \"§f.\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 1)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopPainters();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top painters §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fhas used §b" + obj.getDyesUsed() + " §fdye" + (obj.getDyesUsed() == 1 ? "" : "s") + ".\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 2)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopClockers();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top manipulators of time §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fextended the time §b" + obj.getClocksUsed() + " §ftime" + (obj.getClocksUsed() == 1 ? "" : "s") + ".\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 3)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopPearlers();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top dislocators §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fhas thrown §b" + obj.getEnderpearlsUsed() + " §fender pearl" + (obj.getEnderpearlsUsed() == 1 ? "" : "s") + ".\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 4)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopSnowballers();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top trigger happy players §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fhas thrown §b" + obj.getSnowballsUsed() + " §fsnow ball" + (obj.getSnowballsUsed() == 1 ? "" : "s") + "\"}, ";
+    			
+    			if(obj.getSnowballsHit() > 0)
+    				json += "{text: \"§f, of which §b" + obj.getSnowballsHit() + " §fhit their target\"}, ";
+    			
+    			json += "{text: \"§f.\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 5)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopRandomizers();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top randomizers §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fhas used §b" + obj.getRandomizersUsed() + " §frandomizer" + (obj.getRandomizersUsed() == 1 ? "" : "s") + ".\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 6)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopDeaths();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top investigators of the Void §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fdied §b" + obj.getDeaths() + " §ftime" + (obj.getDeaths() == 1 ? "" : "s") + ".\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	else if(type == 7)
+    	{
+    		List<PlayerStats> list = PlayerStats.loadTopContestants();
+    		    		
+    		json += "{text: \" §6»» §bColorfall top contestants §6««\n\"}, ";
+    		
+    		int i = 0;
+    		for(PlayerStats obj : list)
+    		{
+    			if(i == 0)
+    				json += "{text: \" §3Current leader: \"}, ";
+    			else
+    				json += "{text: \" §3Runner-up: \"}, ";
+    			
+    			json += "{text: \"§b" + obj.getName() + " §fhas played §b" + obj.getGamesPlayed() + " §fgame" + (obj.getGamesPlayed() == 1 ? "" : "s") + "\"}, ";
+    			
+    			if(obj.getRoundsPlayed() > 0)
+    				json += "{text: \"§f, and a total of §b" + obj.getRoundsPlayed() + " §fround" + (obj.getRoundsPlayed() == 1 ? "" : "s") + "\"}, ";
+    			
+    			json += "{text: \"§f.\n\"}, ";
+    			
+    			i++;
+    		}
+    		
+    		if(i == 0)
+    		{
+    			json += "{text: \" §fNothing in this category yet. You can be the first ツ\n\"}, ";
+    		}
+    	}
+    	
+    	json += "{text: \"\n §eOther stats:\n\"}, ";
+    	
+    	if(type != 0)
+    		json += "{text: \" §f[§bWins§f]\", clickEvent: {action: \"run_command\", value: \"/hi 0\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who won the most games.\"}}, ";
+    	
+    	if(type != 6)
+    		json += "{text: \" §f[§bDeaths§f]\", clickEvent: {action: \"run_command\", value: \"/hi 6\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who died the most.\"}}, ";
+    	
+    	if(type != 7)
+    		json += "{text: \" §f[§bContestants§f]\", clickEvent: {action: \"run_command\", value: \"/hi 7\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who played the most games.\"}}, ";
+    	
+    	if(type != 1)
+    		json += "{text: \" §f[§bPainters§f]\", clickEvent: {action: \"run_command\", value: \"/hi 1\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who used the most dyes.\"}}, ";
+    	
+    	json += "{text: \"\n\"}, ";
+    	
+    	if(type != 2)
+    		json += "{text: \" §f[§bClockers§f]\", clickEvent: {action: \"run_command\", value: \"/hi 2\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who used the most clocks.\"}}, ";
+    	
+    	if(type != 3)
+    		json += "{text: \" §f[§bPearlers§f]\", clickEvent: {action: \"run_command\", value: \"/hi 3\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who used the most enderpearls.\"}}, ";
+    	
+    	if(type != 4)
+    		json += "{text: \" §f[§bSnowballers§f]\", clickEvent: {action: \"run_command\", value: \"/hi 4\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who used the most snowballs.\"}}, ";
+    	
+    	if(type != 5)
+    		json += "{text: \" §f[§bRandomizers§f]\", clickEvent: {action: \"run_command\", value: \"/hi 5\" }, hoverEvent: {action: \"show_text\", value: \"§fSee who used the most randomizers.\"}}, ";
+    	
+    	json += "{text: \"\n §f[§6See your own stats§f]\", clickEvent: {action: \"run_command\", value: \"/stats\" }, hoverEvent: {action: \"show_text\", value: \"§fSee your personal stats.\"}}, ";
+    	    	    	
+    	json += "{text: \" \n\"} ";
+		json += "] ";
+		
+		return json;
+    }
+    
+    void showStats(Player player, String name)
+    {
+    	PlayerStats stats = new PlayerStats();
+    	stats.loadOverview(name);
+    	
+    	if(stats.getGamesPlayed() > 0)
+    	{
+    		String json = "[";
+    		json += "{text: \" §3§l§m   §3 Stats for §b" + name + " §3§l§m   \n\"}, ";
+			/*json += "{text: \" §fGames: §b" + stats.getGamesPlayed() + " §fplayed §7/ §b" + stats.getGamesWon() + " §fwon\n\"}, ";
+			json += "{text: \" §fSuperior wins: §b" + stats.getSuperiorWins() + "\n\"}, ";
+			json += "{text: \" §fDeaths: §b" + stats.getDeaths() + "\n\"}, ";
+			json += "{text: \" §fRounds: §b" + stats.getRoundsPlayed() + " §fplayed §7/ §b" + stats.getRoundsSurvived() + " §fsurvived\n\"}, ";*/
+			
+    		String who = player.getName().equalsIgnoreCase(name) ? "You have" : name + " has";
+    		
+			json += "{text: \" §f" + who + " played §b" + stats.getGamesPlayed() + " §fgame" + (stats.getGamesPlayed() == 1 ? "" : "s") + " of Colorfall.\n\"}, ";
+			json += "{text: \" §6Notable stats:\n\"}, ";
+			json += "{text: \" §b" + stats.getGamesWon() + " §fwin" + (stats.getGamesWon() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getSuperiorWins() + " §fsuperior win" + (stats.getSuperiorWins() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getDeaths() + " §fdeath" + (stats.getDeaths() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getRoundsPlayed() + " §fround" + (stats.getRoundsPlayed() == 1 ? "" : "s") + " played §7/\"}, ";
+			json += "{text: \" §b" + stats.getRoundsSurvived() + " §fround" + (stats.getRoundsSurvived() == 1 ? "" : "s") + " survived\n\"}, ";
+			
+			json += "{text: \" §6Powerups used:\n\"}, ";
+			json += "{text: \" §b" + stats.getDyesUsed() + " §fdye" + (stats.getDyesUsed() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getRandomizersUsed() + " §frandomizer" + (stats.getRandomizersUsed() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getClocksUsed() + " §fclock" + (stats.getClocksUsed() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getEnderpearlsUsed() + " §fenderpearl" + (stats.getEnderpearlsUsed() == 1 ? "" : "s") + " §7/\"}, ";
+			json += "{text: \" §b" + stats.getSnowballsUsed() + " §fsnowball" + (stats.getSnowballsUsed() == 1 ? "" : "s") + " \n\"}, ";
+			
+			/*json += "{text: \" §fDyes used: §b" + stats.getDyesUsed() + "\n\"}, ";
+			json += "{text: \" §fRandomizers used: §b" + stats.getRandomizersUsed() + "\n\"}, ";
+			json += "{text: \" §fClocks used: §b" + stats.getClocksUsed() + "\n\"}, ";
+			json += "{text: \" §fEnderpearls used: §b" + stats.getEnderpearlsUsed() + "\n\"}, ";
+			json += "{text: \" §fSnowballs: §b" + stats.getSnowballsUsed() + " §fused §7/ §b" + stats.getSnowballsHit() + " §fsuccesful hits\n\"}, ";*/
+			json += "{text: \" \n\"} ";
+			json += "] ";
+			
+			sendJsonMessage(player, json);
+    	}
+    	else
+    	{
+    		Msg.send(player, " No stats recorded for " + name);
+    	}
     }
     
     // Snatched from https://github.com/Webbeh/ActionBarAPI/blob/master/src/com/connorlinfoot/actionbarapi/ActionBarAPI.java
@@ -1848,6 +2256,19 @@ public class ColorfallGame extends Game implements Listener
     		// Do nothing. This action bar message is a bonus if it works. If it doesn't, there's no fallback anyway, so just ignore it.
     	}
     }
+    
+    private boolean sendJsonMessage(Player player, String json)
+	{
+		if(player == null)
+	    	return false;
+	    
+	    final CommandSender console = MinigamesPlugin.getInstance().getServer().getConsoleSender();
+	    final String command = "minecraft:tellraw " + player.getName() + " " + json;
+	
+	    MinigamesPlugin.getInstance().getServer().dispatchCommand(console, command);
+	    
+	    return true;
+	}
 	
 	@SuppressWarnings("unused")
 	private void debug(Object o)

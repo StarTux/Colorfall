@@ -7,6 +7,9 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import com.avaje.ebean.SqlUpdate;
+import com.winthier.minigames.MinigamesPlugin;
+
 public class GamePlayer
 {
 	private final ColorfallGame game;
@@ -14,18 +17,29 @@ public class GamePlayer
 	private PlayerType type;
 	private String name;
 	private boolean isReady;
-	private int lives;
 	private boolean isAlive;
 	private long lastDeath;
 	private long disconnectedTics;
 	private Location spawnLocation;
-	private boolean highscoreRecorded;
+	private boolean statsRecorded;
 	private boolean didPlay = false;
+	private boolean joinedAsSpectator = false;
+	
+	// Player stats and highscore stuff.
+	private boolean winner = false;
 	private Date startTime;
 	private Date endTime;
-	private int rounds = 0;
-	private boolean winner = false;
-	private boolean joinedAsSpectator = false;
+	private int roundsPlayed = 0;
+	private int roundsSurvived = 0;
+	private int deaths = 0;
+	private int livesLeft;
+	private boolean superior = false;
+	private int dyesUsed = 0;
+	private int randomizersUsed = 0;
+	private int clocksUsed = 0;
+	private int enderpearlsUsed = 0;
+	private int snowballsUsed = 0;
+	private int snowballsHit = 0;
 	
 	static enum PlayerType
 	{
@@ -129,7 +143,7 @@ public class GamePlayer
 	// Set amount of lives. Note: should only be called once when the game starts.
 	public void setLives(int lives)
 	{
-		this.lives = lives;
+		this.livesLeft = lives;
 		
 		game.getScoreboard().setPlayerScore(game.getPlayer(uuid).getPlayer(), lives);
 	}
@@ -142,15 +156,17 @@ public class GamePlayer
 	// Register that the player died. If the player has used all his lives, he is set as spectator.
 	public void died()
 	{
+		deaths++;
+		
 		// See onEntityDamage for why I keep track of this.
 		lastDeath = System.currentTimeMillis();
 		
-		if(lives > 0)
-			lives--;
+		if(livesLeft > 0)
+			livesLeft--;
 		
 		Player player = game.getPlayer(uuid).getPlayer();
 		
-		if(lives == 0)
+		if(livesLeft == 0)
 		{
 			isAlive = false;
 			
@@ -165,7 +181,7 @@ public class GamePlayer
 		}
 		else
 		{
-			game.getScoreboard().setPlayerScore(player, lives);
+			game.getScoreboard().setPlayerScore(player, livesLeft);
 			
 			game.onPlayerDeath(player);
 		}
@@ -189,7 +205,37 @@ public class GamePlayer
 	
 	public void addRound()
 	{
-		rounds++;
+		roundsPlayed++;
+	}
+	
+	public void addRandomizer()
+	{
+		randomizersUsed++;
+	}
+	
+	public void addClock()
+	{
+		clocksUsed++;
+	}
+	
+	public void addDye()
+	{
+		dyesUsed++;
+	}
+	
+	public void addEnderpearl()
+	{
+		enderpearlsUsed++;
+	}
+	
+	public void addSnowball()
+	{
+		snowballsUsed++;
+	}
+	
+	public void addSnowballHit()
+	{
+		snowballsHit++;
 	}
 	
 	public void setWinner()
@@ -207,8 +253,25 @@ public class GamePlayer
 		startTime = start;
 	}
 	
+	public void updateStatsName()
+	{
+		String sql = "update `colorfall_playerstats` set `player_name` = :name where `player_uuid` = :uuid";
+		
+		try
+		{
+			SqlUpdate update = MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql);
+			update.setParameter("name", getName());
+			update.setParameter("uuid", this.uuid);
+			update.execute();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
 	@SuppressWarnings("incomplete-switch")
-	public void recordHighscore()
+	public void recordStats(boolean moreThanOnePlayed, String mapId)
     {
         switch(game.state)
         {
@@ -220,12 +283,53 @@ public class GamePlayer
         if(!didPlay)
         	return;
         
-        if(highscoreRecorded)
+        if(statsRecorded)
         	return;
         
-        game.highscore.store(game.gameUuid, uuid, name, startTime, endTime, rounds, winner);
-        game.getLogger().info("Stored highscore of " + name);
+        if(endTime == null)
+			endTime = new Date();
         
-        highscoreRecorded = true;
+        roundsSurvived = roundsPlayed - deaths;
+        superior = deaths == 0;
+		
+		final String sql =
+			"insert into `colorfall_playerstats` (" +
+			" `game_uuid`, `player_uuid`, `player_name`, `start_time`, `end_time`, `rounds_played`, `rounds_survived`, `deaths`, `lives_left`, `superior_win`, `dyes_used`, `randomizers_used`, `clocks_used`, `enderpearls_used`, `snowballs_used`, `snowballs_hit`, `winner`, `sp_game`, `map_id`" +
+			") values (" +
+			" :gameUuid, :playerUuid, :playerName, :startTime, :endTime, :roundsPlayed, :roundsSurvived, :deaths, :livesLeft, :superiorWin, :dyesUsed, :randomizersUsed, :clocksUsed, :enderpearlsUsed, :snowballsUsed, :snowballsHit, :winner, :spGame, :mapId" +
+			")";
+		
+		try
+		{
+			SqlUpdate update = MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql);
+			update.setParameter("gameUuid", game.gameUuid);
+			update.setParameter("playerUuid", uuid);
+			update.setParameter("playerName", name);
+			update.setParameter("startTime", startTime);
+			update.setParameter("endTime", endTime);
+			update.setParameter("roundsPlayed", roundsPlayed);
+			update.setParameter("roundsSurvived", roundsSurvived);
+			update.setParameter("deaths", deaths);
+			update.setParameter("livesLeft", livesLeft);
+			update.setParameter("superiorWin", superior);
+			update.setParameter("dyesUsed", dyesUsed);
+			update.setParameter("randomizersUsed", randomizersUsed);
+			update.setParameter("clocksUsed", clocksUsed);
+			update.setParameter("enderpearlsUsed", enderpearlsUsed);
+			update.setParameter("snowballsUsed", snowballsUsed);
+			update.setParameter("snowballsHit", snowballsHit);
+			update.setParameter("winner", winner);
+			update.setParameter("spGame", !moreThanOnePlayed);
+			update.setParameter("mapId", mapId);
+			update.execute();
+			
+			game.getLogger().info("Stored player stats of " + name);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+        
+        statsRecorded = true;
     }
 }
