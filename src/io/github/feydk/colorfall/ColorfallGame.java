@@ -36,8 +36,8 @@ import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -48,14 +48,14 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -155,7 +155,7 @@ public class ColorfallGame extends Game implements Listener
     @Override
     public void onEnable()
     {
-    	FileConfiguration config = getConfigFile("config");
+    	ConfigurationSection config = getConfigFile("config");
     	
     	mapID = getConfig().getString("MapID", mapID);
         mapPath = getConfig().getString("MapPath", config.getString("general.defaultMapPath"));
@@ -231,7 +231,7 @@ public class ColorfallGame extends Game implements Listener
     
     private void loadPowerups()
     {
-    	FileConfiguration config = getConfigFile("powerups");
+    	ConfigurationSection config = getConfigFile("powerups");
     	
     	for(String key : config.getKeys(false))
     	{
@@ -250,7 +250,7 @@ public class ColorfallGame extends Game implements Listener
     
     private void loadRounds()
     {
-    	FileConfiguration config = getConfigFile("rounds");
+    	ConfigurationSection config = getConfigFile("rounds");
     	
     	// Load the default settings. Every round that doesn't define any of the values will take the value from default.
     	long duration = config.getLong("default.duration") * 20;
@@ -1291,13 +1291,10 @@ public class ColorfallGame extends Game implements Listener
     	if(event.getEntity() instanceof Snowball)
     	{
     		Snowball snowball = (Snowball)event.getEntity();
-    		LivingEntity entityThrower = snowball.getShooter();
-    		
-    		if(entityThrower instanceof Player)
-    		{
-    			Player playerThrower = (Player)entityThrower;
-    			getGamePlayer(playerThrower).addSnowball();
-    		}
+                if (snowball.getShooter() instanceof Player) {
+                    Player playerThrower = (Player)snowball.getShooter();
+                    getGamePlayer(playerThrower).addSnowball();
+                }
     	}
     }
     
@@ -1311,13 +1308,12 @@ public class ColorfallGame extends Game implements Listener
     	if(event.getDamager() instanceof Snowball)
     	{
     		Snowball snowball = (Snowball)event.getDamager();
-    		LivingEntity entityThrower = snowball.getShooter();
-    		
-    		if(entityThrower instanceof Player)
-            {
-                Player playerThrower = (Player)entityThrower;
-                getGamePlayer(playerThrower).addSnowballHit();
-            }
+                if (snowball.getShooter() instanceof Player) {
+                    {
+                        Player playerThrower = (Player)snowball.getShooter();
+                        getGamePlayer(playerThrower).addSnowballHit();
+                    }
+                }
     	}
     	
     	Player player = (Player)event.getEntity();
