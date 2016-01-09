@@ -6,9 +6,11 @@ import java.util.UUID;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.configuration.ConfigurationSection;
 
 import com.avaje.ebean.SqlUpdate;
 import com.winthier.minigames.MinigamesPlugin;
+import com.winthier.reward.RewardBuilder;
 
 public class GamePlayer
 {
@@ -40,6 +42,8 @@ public class GamePlayer
 	private int enderpearlsUsed = 0;
 	private int snowballsUsed = 0;
 	private int snowballsHit = 0;
+
+        boolean rewarded = false;
 	
 	static enum PlayerType
 	{
@@ -331,5 +335,20 @@ public class GamePlayer
 		}
         
         statsRecorded = true;
+
+        if (moreThanOnePlayed && !rewarded) {
+                rewarded = true;
+                RewardBuilder reward = RewardBuilder.create().uuid(uuid).name(name);
+                reward.comment(String.format("Game of Colorfall %s with %d rounds and %d lives left", (winner ? "won" : "played"), roundsPlayed, livesLeft));
+                ConfigurationSection config = game.getConfigFile("rewards");
+                for (int i = 0; i < roundsSurvived; ++i) reward.config(config.getConfigurationSection("round_survived"));
+                for (int i = 0; i < roundsSurvived/5; ++i) reward.config(config.getConfigurationSection("5_rounds_survived"));
+                for (int i = 0; i < roundsPlayed; ++i) reward.config(config.getConfigurationSection("played" + i + "rounds"));
+                if (roundsPlayed >= 5) {
+                        if (winner) reward.config(config.getConfigurationSection("win"));
+                        if (superior) reward.config(config.getConfigurationSection("superior"));
+                }
+                reward.store();
+        }
     }
 }
