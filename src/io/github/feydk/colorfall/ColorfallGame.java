@@ -47,6 +47,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -363,6 +364,7 @@ public class ColorfallGame extends Game implements Listener
         world.setPVP(false);
         world.setGameRuleValue("doTileDrops", "false");
         world.setGameRuleValue("doMobSpawning", "false");
+        world.setGameRuleValue("doFireTick", "false");
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
         
@@ -1720,6 +1722,12 @@ public class ColorfallGame extends Game implements Listener
     		event.setCancelled(true);
     }
     
+    @EventHandler
+    public void onLeavesDecay(LeavesDecayEvent event)
+    {
+            event.setCancelled(true);
+    }
+
     /*@EventHandler
     public void onPistonRetract(BlockPistonRetractEvent event)
     {
