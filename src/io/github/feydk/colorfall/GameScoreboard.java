@@ -8,6 +8,9 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.Team;
+import org.bukkit.scoreboard.Team.Option;
+import org.bukkit.scoreboard.Team.OptionStatus;
 
 import com.winthier.minigames.util.Msg;
 
@@ -15,6 +18,7 @@ public class GameScoreboard
 {
 	private Objective objective = null;
 	private Scoreboard board = null;
+	private Team team = null;
 	
 	private String title;
 	
@@ -34,13 +38,18 @@ public class GameScoreboard
 		else
 			objective = board.getObjective("Timer");
 		
+		team = board.registerNewTeam("All");
+		team.setOption(Option.COLLISION_RULE, OptionStatus.NEVER);
+		
 		objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 	}
 	
 	// Add a player to the scoreboard.
+	@SuppressWarnings("deprecation")
 	public void addPlayer(Player player)
 	{
 		player.setScoreboard(board);
+		team.addPlayer(player);
 	}
 	
 	// Refresh the scoreboard title.
