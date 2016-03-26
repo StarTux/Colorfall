@@ -61,8 +61,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class ColorfallGame extends Game implements Listener
@@ -254,7 +252,6 @@ public class ColorfallGame extends Game implements Listener
 		double pvp = config.getDouble("default.pvp");
 		double randomize = config.getDouble("default.randomize");
 		MemorySection powerups = (MemorySection)config.get("default.powerups");
-		MemorySection effects = (MemorySection)config.get("default.effects");
 			
 		for(String key : config.getKeys(false))
 		{
@@ -262,7 +259,6 @@ public class ColorfallGame extends Game implements Listener
 			double roundPvp = pvp;
 			double roundRandomize = randomize;
 			MemorySection roundPowerups = powerups;
-			MemorySection roundEffects = effects;
 
 			if(config.get(key + ".duration") != null)
 				roundDuration = config.getLong(key + ".duration") * 20;
@@ -275,9 +271,6 @@ public class ColorfallGame extends Game implements Listener
 	
 			if(config.get(key + ".powerups") != null)
 				roundPowerups = (MemorySection)config.get(key + ".powerups");
-
-			if(config.get(key + ".effects") != null)
-				roundEffects = (MemorySection)config.get(key + ".effects");
 
 			Round round = new Round(this);
 			round.setDuration(roundDuration);
@@ -295,16 +288,7 @@ public class ColorfallGame extends Game implements Listener
 
 			if(number - roundRandomize <= 0)
 				round.setRandomize(true);
-
-			// Parse effects.
-			if(roundEffects != null)
-			{
-				for(String effecttype : roundEffects.getKeys(true))
-				{
-					round.addEffect(PotionEffectType.getByName(effecttype), roundEffects.getInt(effecttype) * 20);
-				}
-			}
-
+			
 			// Parse powerups.
 			if(roundPowerups != null)
 			{
@@ -649,13 +633,7 @@ public class ColorfallGame extends Game implements Listener
 							for(ItemStack stack : powerups)
 								player.getInventory().addItem(stack);
 						}
-						
-						// Give potion effects.
-						for(PotionEffect effect : round.getDealtEffects())
-										{
-							player.addPotionEffect(effect);
-										}
-						
+																		
 						if(player.getGameMode() == GameMode.SPECTATOR)
 						{
 							player.teleport(gp.getSpawnLocation());

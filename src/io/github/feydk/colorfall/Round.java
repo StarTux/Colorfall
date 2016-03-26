@@ -18,9 +18,7 @@ public class Round
 	private long durationTicks;
 	private boolean pvp;
 	private boolean randomize;
-	private Map<EntityType, Double> spawns = new HashMap<EntityType, Double>();
 	private Map<ItemStack, Double> powerups = new HashMap<ItemStack, Double>();
-	private Map<PotionEffectType, Integer> effects = new HashMap<PotionEffectType, Integer>();
 	private double pvpChance;
 	private double randomizeChance;
 	
@@ -42,21 +40,6 @@ public class Round
 	public void setRandomize(boolean randomize)
 	{
 		this.randomize = randomize;
-	}
-	
-	public void setSpawns(Map<EntityType, Double> spawns)
-	{
-		this.spawns = spawns;
-	}
-	
-	public void addSpawn(EntityType type, double percentage)
-	{
-		spawns.put(type, percentage);
-	}
-	
-	public void addEffect(PotionEffectType type, int duration)
-	{
-		effects.put(type, duration);
 	}
 	
 	public void addPowerup(ItemStack stack, double percentage)
@@ -103,31 +86,12 @@ public class Round
 	{
 		Round r = new Round(game);
 		r.durationTicks = this.durationTicks;
-		r.effects = this.effects;
 		r.game = this.game;
 		r.powerups = this.powerups;
 		r.pvpChance = this.pvpChance;
 		r.randomizeChance = this.randomizeChance;
-		r.spawns = this.spawns;
 		
 		return r;
-	}
-	
-	public Map<EntityType, Double> getSpawns()
-	{
-		return spawns;
-	}
-	
-	public List<PotionEffect> getDealtEffects()
-	{
-		List<PotionEffect> list = new ArrayList<PotionEffect>();
-		
-		for(Entry<PotionEffectType, Integer> entry : effects.entrySet())
-		{
-			list.add(new PotionEffect(entry.getKey(), entry.getValue(), 1));
-		}
-		
-		return list;
 	}
 	
 	@SuppressWarnings("deprecation")
