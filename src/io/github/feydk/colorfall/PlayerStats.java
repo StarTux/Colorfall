@@ -384,6 +384,4 @@ public class PlayerStats
 		
 		return list;
 	}
-
-	
 }
