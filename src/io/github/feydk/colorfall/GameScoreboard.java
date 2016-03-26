@@ -39,9 +39,16 @@ public class GameScoreboard
 			objective = board.getObjective("Timer");
 		
 		team = board.registerNewTeam("All");
-		team.setOption(Option.COLLISION_RULE, OptionStatus.NEVER);
 		
 		objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+	}
+	
+	public void setCollision(boolean collision)
+	{
+		if(collision)
+			team.setOption(Option.COLLISION_RULE, OptionStatus.ALWAYS);
+		else
+			team.setOption(Option.COLLISION_RULE, OptionStatus.NEVER);
 	}
 	
 	// Add a player to the scoreboard.

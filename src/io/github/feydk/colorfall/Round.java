@@ -6,10 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 public class Round
 {
@@ -17,11 +14,12 @@ public class Round
 	
 	private long durationTicks;
 	private boolean pvp;
+	private boolean collision;
 	private boolean randomize;
 	private Map<ItemStack, Double> powerups = new HashMap<ItemStack, Double>();
 	private double pvpChance;
 	private double randomizeChance;
-	
+		
 	public Round(ColorfallGame game)
 	{
 		this.game = game;
@@ -35,6 +33,11 @@ public class Round
 	public void setPvp(boolean pvp)
 	{
 		this.pvp = pvp;
+	}
+	
+	public void setCollision(boolean collision)
+	{
+		this.collision = collision;
 	}
 	
 	public void setRandomize(boolean randomize)
@@ -55,6 +58,11 @@ public class Round
 	public boolean getPvp()
 	{
 		return pvp;
+	}
+	
+	public boolean getCollision()
+	{
+		return collision;
 	}
 	
 	public boolean getRandomize()
@@ -90,6 +98,7 @@ public class Round
 		r.powerups = this.powerups;
 		r.pvpChance = this.pvpChance;
 		r.randomizeChance = this.randomizeChance;
+		r.collision = this.collision;
 		
 		return r;
 	}

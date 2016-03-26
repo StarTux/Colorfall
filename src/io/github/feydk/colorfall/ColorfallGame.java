@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.UUID;
 
@@ -246,35 +247,20 @@ public class ColorfallGame extends Game implements Listener
 	private void loadRounds()
 	{
 		ConfigurationSection config = getConfigFile("rounds");
-
-		// Load the default settings. Every round that doesn't define any of the values will take the value from default.
-		long duration = config.getLong("default.duration") * 20;
-		double pvp = config.getDouble("default.pvp");
-		double randomize = config.getDouble("default.randomize");
-		MemorySection powerups = (MemorySection)config.get("default.powerups");
-			
+		
+		// Load root config nodes from. Each root node is valid for rounds until a new root node is found.
 		for(String key : config.getKeys(false))
 		{
-			long roundDuration = duration;
-			double roundPvp = pvp;
-			double roundRandomize = randomize;
-			MemorySection roundPowerups = powerups;
-
-			if(config.get(key + ".duration") != null)
-				roundDuration = config.getLong(key + ".duration") * 20;
-
-			if(config.get(key + ".pvp") != null)
-				roundPvp = config.getLong(key + ".pvp");
-
-			if(config.get(key + ".randomize") != null)
-				roundRandomize = config.getLong(key + ".randomize");
-	
-			if(config.get(key + ".powerups") != null)
-				roundPowerups = (MemorySection)config.get(key + ".powerups");
+			long roundDuration = config.getLong(key + ".duration") * 20;
+			double roundPvp = config.getLong(key + ".pvp");
+			boolean collision = config.getBoolean(key + ".collision");
+			double roundRandomize = config.getLong(key + ".randomize");
+			MemorySection roundPowerups = (MemorySection)config.get(key + ".powerups");
 
 			Round round = new Round(this);
 			round.setDuration(roundDuration);
 			round.setPvpChance(roundPvp);
+			round.setCollision(collision);
 			round.setRandomizeChance(roundRandomize);
 
 			// Determine if this round will have pvp enabled.
@@ -298,43 +284,47 @@ public class ColorfallGame extends Game implements Listener
 				}
 			}
 
-			if(key.equals("default"))
-				key = "0";
-
 			rounds.put(Integer.parseInt(key), round);
 		}
 	}
 
+	// Find the config that belongs to this round. I.e. if round is 2 and we have round configs for 1 and 20, we use the config for round 1.
 	private Round getRound(int round)
 	{
-		if(rounds.containsKey(round))
+		if(currentRound == null)
 		{
-			return rounds.get(round);
-		}
-		else
-		{
-			if(currentRound == null)
+			Round found = null;
+			
+			for(Entry<Integer, Round> entry : rounds.entrySet())
 			{
-				// Round doesn't have a specific config, so use the default config instead.
-				Round r = rounds.get(0).copy();
-
+				if(round >= entry.getKey())
+				{
+					found = entry.getValue();
+					//debug("Using config for round " + entry.getKey());
+				}
+			}
+			
+			if(found != null)
+			{
+				Round r = found.copy();
+	
 				// Determine if this round will have pvp enabled.
 				double number = Math.random() * 100;
-
+	
 				if(number - r.getPvpChance() <= 0)
 					r.setPvp(true);
-
+	
 				// Determine if this round will have randomize enabled.
 				number = Math.random() * 100;
-
+	
 				if(number - r.getRandomizeChance() <= 0)
 					r.setRandomize(true);
-
+	
 				currentRound = r;
 			}
-
-			return currentRound;
 		}
+
+		return currentRound;
 	}
 
 	private void onWorldsLoaded(WorldLoader worldLoader)
@@ -611,11 +601,17 @@ public class ColorfallGame extends Game implements Listener
 				Round round = getRound(currentRoundIdx);
 				currentRoundDuration = round.getDuration();
 				
+				scoreboard.setCollision(round.getCollision());
+				
 				// If single player game not in debug mode, disable pvp.
 				if(!moreThanOnePlayed && !debug)
 					world.setPVP(false);
 				else
 					world.setPVP(round.getPvp());
+				
+				// Do this again to make sure. It seems 1.9 changed this somehow.
+				world.setWeatherDuration(Integer.MAX_VALUE);
+				world.setStorm(false);
 				
 				for(Player player : getOnlinePlayers())
 				{
