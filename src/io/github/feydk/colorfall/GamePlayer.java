@@ -26,7 +26,8 @@ public class GamePlayer
 	private boolean statsRecorded;
 	private boolean didPlay = false;
 	private boolean joinedAsSpectator = false;
-	
+	private boolean diedThisRound = false;
+		
 	// Player stats and highscore stuff.
 	private boolean winner = false;
 	private Date startTime;
@@ -97,6 +98,16 @@ public class GamePlayer
 			game.getPlayer(uuid).getPlayer().setGameMode(GameMode.SPECTATOR);
 	}
 	
+	public boolean diedThisRound()
+	{
+		return diedThisRound;
+	}
+
+	public void setDiedThisRound(boolean diedThisRound)
+	{
+		this.diedThisRound = diedThisRound;
+	}
+	
 	public void setName(String name)
 	{
 		this.name = name;
@@ -145,6 +156,7 @@ public class GamePlayer
 		
 		// See onEntityDamage for why I keep track of this.
 		lastDeath = System.currentTimeMillis();
+		diedThisRound = true;
 		
 		if(livesLeft > 0)
 			livesLeft--;

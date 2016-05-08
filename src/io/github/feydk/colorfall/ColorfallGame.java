@@ -620,6 +620,7 @@ public class ColorfallGame extends Game implements Listener
 					if(gp.isAlive() && gp.isPlayer())
 					{
 						gp.addRound();
+						gp.setDiedThisRound(false);
 						
 						// Hand out powerups.
 						List<ItemStack> powerups = round.getDistributedPowerups();
@@ -1288,7 +1289,7 @@ public class ColorfallGame extends Game implements Listener
 		// It seems that when a player is teleported, any fall damage he is due to take is inflicted immediately. Even when falling into the void.
 		// This peculiarity leads to the player dying twice, once by falling out of the world and then by taking fall damage.
 		// So, to avoid double deaths I check if the player last died less than 500 ms ago.
-		if(gp.getLastDeath() > 0 && System.currentTimeMillis() - gp.getLastDeath() <= 500)
+		if((gp.getLastDeath() > 0 && System.currentTimeMillis() - gp.getLastDeath() <= 500) || gp.diedThisRound())
 		{
 			event.setCancelled(true);
 			return;
