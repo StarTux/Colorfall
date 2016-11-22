@@ -18,6 +18,8 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.MetadataValue;
@@ -604,4 +606,16 @@ public class GameMap
 		
 		return newStack;
 	}
+
+        /**
+         * Remove ender pearls still in the air to prevent cheating.
+         */
+        public void removeEnderPearls()
+        {
+                for (Entity e: world.getEntities()) {
+                        if (e.getType() == EntityType.ENDER_PEARL) {
+                                e.remove();
+                        }
+                }
+        }
 }

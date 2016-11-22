@@ -650,6 +650,7 @@ public class ColorfallGame extends Game implements Listener
 				break;
 			// Restore blocks.
 			case RESTORING_BLOCKS:
+                                map.removeEnderPearls();
 				map.restoreBlocks(paintedBlocks);
 				disallowPistons = false;
 				break;
