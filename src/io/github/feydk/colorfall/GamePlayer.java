@@ -5,8 +5,10 @@ import java.util.UUID;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import com.avaje.ebean.SqlUpdate;
 import com.winthier.minigames.MinigamesPlugin;
@@ -45,6 +47,7 @@ public class GamePlayer
 	private int snowballsHit = 0;
 
         boolean rewarded = false;
+        Location immobileLocation;
 	
 	static enum PlayerType
 	{
@@ -357,4 +360,43 @@ public class GamePlayer
 			reward.store();
         }
     }
+
+	void makeImmobile(Player player, Location location)
+	{
+                this.immobileLocation = location;
+		if(!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 2.0)
+		{
+			player.teleport(location);
+			game.getLogger().info("Teleported " + player.getName() + " to their spawn location");
+		}
+		player.setAllowFlight(true);
+		player.setFlying(true);
+		player.setFlySpeed(0);
+		player.setWalkSpeed(0);
+	}
+
+	void makeMobile(Player player)
+	{
+                this.immobileLocation = null;
+		player.setWalkSpeed(.2f);
+		player.setFlySpeed(.1f);
+		player.setFlying(false);
+		player.setAllowFlight(false);
+	}
+
+        void onTick(Player player) {
+                if (player == null) return;
+                if (immobileLocation != null) {
+                        if(!player.getLocation().getWorld().equals(immobileLocation.getWorld()) || player.getLocation().distanceSquared(immobileLocation) > 2.0)
+                        {
+                                player.setAllowFlight(true);
+                                player.setFlying(true);
+                                player.setFlySpeed(0);
+                                player.setWalkSpeed(0);
+                                player.teleport(immobileLocation);
+                                game.getLogger().info("Teleported " + player.getName() + " to their spawn location");
+                        }
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20, 9), true);
+                }
+        }
 }

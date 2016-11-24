@@ -415,7 +415,6 @@ public class ColorfallGame extends Game implements Listener
 			for(Player player : getOnlinePlayers())
 			{
 				GamePlayer gp = getGamePlayer(player);
-				
 				if(gp.isAlive() && !gp.joinedAsSpectator())
 				{
 					survivor = gp;
@@ -468,6 +467,7 @@ public class ColorfallGame extends Game implements Listener
 		for(PlayerInfo info : getPlayers())
 		{
 				GamePlayer gp = getGamePlayer(info.getUuid());
+				gp.onTick(info.getPlayer());
 	
 				if(!info.isOnline() && !gp.joinedAsSpectator())
 				{
@@ -535,7 +535,7 @@ public class ColorfallGame extends Game implements Listener
 					
 					if(!gp.joinedAsSpectator())
 					{
-						makeMobile(player);
+						gp.makeMobile(player);
 						player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
 						count++;
 					}
@@ -1144,11 +1144,11 @@ public class ColorfallGame extends Game implements Listener
 			case WAIT_FOR_PLAYERS:
 			case COUNTDOWN_TO_START:
 				// Someone joins in the early stages, we make sure they are locked in the right place.
-				makeImmobile(player, gp.getSpawnLocation());
+				gp.makeImmobile(player, gp.getSpawnLocation());
 				break;
 			default:
 				// Join later and we make sure you are in the right state.
-				makeMobile(player);
+				gp.makeMobile(player);
 				gp.setPlayer();
 		}
 	}
@@ -1180,28 +1180,6 @@ public class ColorfallGame extends Game implements Listener
 			event.setCancelled(true);
 		else
 			getGamePlayer(event.getPlayer()).addEnderpearl();
-	}
-
-	private void makeImmobile(Player player, Location location)
-	{
-		if(!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 4.0)
-		{
-			player.teleport(location);
-			getLogger().info("Teleported " + player.getName() + " to their spawn location");
-		}
-	
-		player.setAllowFlight(true);
-		player.setFlying(true);
-		player.setFlySpeed(0);
-		player.setWalkSpeed(0);
-	}
-
-	private void makeMobile(Player player)
-	{
-		player.setWalkSpeed(.2f);
-		player.setFlySpeed(.1f);
-		player.setFlying(false);
-		player.setAllowFlight(false);
 	}
 
 	@Override
@@ -1306,7 +1284,7 @@ public class ColorfallGame extends Game implements Listener
 			{
 				player.setGameMode(GameMode.SPECTATOR);
 				player.teleport(gp.getSpawnLocation());
-				//makeImmobile(player, gp.getSpawnLocation());
+				//gp.makeImmobile(player, gp.getSpawnLocation());
 			}
 			else
 			{
