@@ -7,8 +7,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 import com.avaje.ebean.SqlUpdate;
 import com.winthier.minigames.MinigamesPlugin;
@@ -396,7 +394,6 @@ public class GamePlayer
                                 player.teleport(immobileLocation);
                                 game.getLogger().info("Teleported " + player.getName() + " to their spawn location");
                         }
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 20, 9), true);
                 }
         }
 }
