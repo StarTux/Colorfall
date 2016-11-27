@@ -9,6 +9,7 @@ import java.util.Set;
 
 import javafx.geometry.Point2D;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Effect;
@@ -127,10 +128,11 @@ public class GameMap
 		for(Block b : replacedBlocks)
 		{
 			if(b.getType() != Material.AIR && b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId)
-            {
+                        {
 				world.spigot().playEffect(b.getLocation().add(.5, 1.5, .5), Effect.COLOURED_DUST, 0, 0, .5f, .5f, .5f, .01f, 5, 50);
 				//(Location location, Effect effect, int id, int data, float offsetX, float offsetY, float offsetZ, float speed, int particleCount, int radius)
-            }
+                                Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), String.format("minecraft:execute %s ~ ~ ~ minecraft:summon minecraft:falling_block %d %.2f %d {Time:579,Block:stone_pressure_plate,NoGravity:1,DropItem:0,Glowing:1}", world.getPlayers().get(0).getName(), b.getX(), (float)b.getY() + 0.9f, b.getZ()));
+                        }
 		}
 	}
 	
