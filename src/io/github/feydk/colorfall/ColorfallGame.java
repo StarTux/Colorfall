@@ -1,7 +1,5 @@
 package io.github.feydk.colorfall;
 
-import fr.neatmonster.nocheatplus.checks.CheckType;
-import fr.neatmonster.nocheatplus.hooks.NCPExemptionManager;
 import io.github.feydk.colorfall.GameMap.ColorBlock;
 
 import java.util.ArrayList;
@@ -13,7 +11,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.UUID;
 
-import com.connorlinfoot.actionbarapi.ActionBarAPI;
 import com.winthier.minigames.MinigamesPlugin;
 import com.winthier.minigames.event.player.PlayerLeaveEvent;
 import com.winthier.minigames.game.Game;
@@ -206,7 +203,7 @@ public class ColorfallGame extends Game implements Listener
 	
 		try
 		{
-			MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql).execute();
+			MinigamesPlugin.getInstance().getDb().executeUpdate(sql);
 		}
 		catch(Exception e)
 		{
@@ -871,7 +868,7 @@ public class ColorfallGame extends Game implements Listener
 						
 			for(Player player : getOnlinePlayers())
 			{
-				ActionBarAPI.sendActionBar(player, actionMsg);
+				Msg.sendActionBar(player, actionMsg);
 				
 				// Countdown 3 seconds before round ends.
 				if(seconds > 0 && seconds <= 3)
@@ -1485,32 +1482,6 @@ public class ColorfallGame extends Game implements Listener
 	public void onPlayerInteract(PlayerInteractEvent event)
 	{
 		final Player p = event.getPlayer();
-
-		// If player pushes a button we disable NCP fly protect for 1 second, to cater for slime block launchers. Do a radius because more people may be standing on the same block.
-		// Note: may need to add support for other triggers, like pressure plates and stuff.
-		if(event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.STONE_BUTTON && event.getAction() == Action.RIGHT_CLICK_BLOCK)
-		{
-			List<Entity> jumpers = new ArrayList<Entity>();
-			jumpers.add(p);
-			jumpers.addAll(p.getNearbyEntities(10, 10, 10));
-
-			for(Entity e : jumpers)
-			{
-				if(e instanceof Player)
-				{
-					NCPExemptionManager.exemptPermanently(p, CheckType.MOVING_SURVIVALFLY);
-
-					new BukkitRunnable()
-					{
-						@Override public void run()
-						{
-							NCPExemptionManager.unexempt(p, CheckType.MOVING_SURVIVALFLY);
-						}
-					}.runTaskLater(MinigamesPlugin.getInstance(), 20);
-				}
-			}
-		}
-	
 		if(p.getItemInHand().getType() == Material.FEATHER && event.getAction() == Action.RIGHT_CLICK_BLOCK)
 		{
 			Block b = event.getClickedBlock();

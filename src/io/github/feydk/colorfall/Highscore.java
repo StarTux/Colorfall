@@ -1,9 +1,9 @@
 package io.github.feydk.colorfall;
 
-import com.avaje.ebean.SqlRow;
-import com.avaje.ebean.SqlUpdate;
 import com.winthier.minigames.MinigamesPlugin;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -67,7 +67,7 @@ public class Highscore
 		
 		try
 		{
-			MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql).execute();
+			MinigamesPlugin.getInstance().getDb().executeUpdate(sql);
 		}
 		catch(Exception e)
 		{
@@ -86,20 +86,19 @@ public class Highscore
 		"INSERT INTO `Colorfall` (" +
 		" `game_uuid`, `player_uuid`, `player_name`, `start_time`, `end_time`, `rounds`, `winner`" +
 		") VALUES (" +
-		" :gameUuid, :playerUuid, :playerName, :startTime, :endTime, :rounds, :winner" +
+		" ?, ?, ?, ?, ?, ?, ?" +
 		")";
 		
-		try
+		try (PreparedStatement update = MinigamesPlugin.getInstance().getDb().getConnection().prepareStatement(sql))
 		{
-			SqlUpdate update = MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql);
-			update.setParameter("gameUuid", gameUuid);
-			update.setParameter("playerUuid", playerUuid);
-			update.setParameter("playerName", playerName);
-			update.setParameter("startTime", startTime);
-			update.setParameter("endTime", endTime);
-			update.setParameter("rounds", rounds);
-			update.setParameter("winner", winner);
-			update.execute();
+			update.setString(1, gameUuid.toString());
+			update.setString(2, playerUuid.toString());
+			update.setString(3, playerName);
+			update.setTimestamp(4, new java.sql.Timestamp(startTime.getTime()));
+			update.setTimestamp(5, new java.sql.Timestamp(endTime.getTime()));
+			update.setInt(6, rounds);
+			update.setBoolean(7, winner);
+			update.executeUpdate();
 		}
 		catch(Exception e)
 		{
@@ -114,16 +113,21 @@ public class Highscore
 		
 		List<Entry> result = new ArrayList<>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql))
 		{
-			String name = row.getString("player_name");
-			int count = row.getInteger("count");
-			int rounds = row.getInteger("rounds");
-			int wins = row.getInteger("wins");
-			
-			result.add(new Entry(name, count, rounds, wins));
+			while (row.next())
+			{
+				String name = row.getString("player_name");
+				int count = row.getInt("count");
+				int rounds = row.getInt("rounds");
+				int wins = row.getInt("wins");
+				result.add(new Entry(name, count, rounds, wins));
+			}
 		}
-		
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
 		return result;
 	}
 }

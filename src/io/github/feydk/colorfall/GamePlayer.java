@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import java.sql.PreparedStatement;
 import java.util.Date;
 import java.util.UUID;
 
@@ -8,7 +9,6 @@ import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 
-import com.avaje.ebean.SqlUpdate;
 import com.winthier.minigames.MinigamesPlugin;
 import com.winthier.reward.RewardBuilder;
 
@@ -253,14 +253,13 @@ public class GamePlayer
 	
 	public void updateStatsName()
 	{
-		String sql = "update `colorfall_playerstats` set `player_name` = :name where `player_uuid` = :uuid";
+		String sql = "update `colorfall_playerstats` set `player_name` = ? where `player_uuid` = ?";
 		
-		try
+		try (PreparedStatement update = MinigamesPlugin.getInstance().getDb().getConnection().prepareStatement(sql))
 		{
-			SqlUpdate update = MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql);
-			update.setParameter("name", getName());
-			update.setParameter("uuid", this.uuid);
-			update.execute();
+			update.setString(1, getName());
+			update.setString(2, this.uuid.toString());
+			update.executeUpdate();
 		}
 		catch(Exception e)
 		{
@@ -294,32 +293,31 @@ public class GamePlayer
 			"insert into `colorfall_playerstats` (" +
 			" `game_uuid`, `player_uuid`, `player_name`, `start_time`, `end_time`, `rounds_played`, `rounds_survived`, `deaths`, `lives_left`, `superior_win`, `dyes_used`, `randomizers_used`, `clocks_used`, `enderpearls_used`, `snowballs_used`, `snowballs_hit`, `winner`, `sp_game`, `map_id`" +
 			") values (" +
-			" :gameUuid, :playerUuid, :playerName, :startTime, :endTime, :roundsPlayed, :roundsSurvived, :deaths, :livesLeft, :superiorWin, :dyesUsed, :randomizersUsed, :clocksUsed, :enderpearlsUsed, :snowballsUsed, :snowballsHit, :winner, :spGame, :mapId" +
+			" ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?" +
 			")";
 		
-		try
+		try (PreparedStatement update = MinigamesPlugin.getInstance().getDb().getConnection().prepareStatement(sql))
 		{
-			SqlUpdate update = MinigamesPlugin.getInstance().getDatabase().createSqlUpdate(sql);
-			update.setParameter("gameUuid", game.gameUuid);
-			update.setParameter("playerUuid", uuid);
-			update.setParameter("playerName", name);
-			update.setParameter("startTime", startTime);
-			update.setParameter("endTime", endTime);
-			update.setParameter("roundsPlayed", roundsPlayed);
-			update.setParameter("roundsSurvived", roundsSurvived);
-			update.setParameter("deaths", deaths);
-			update.setParameter("livesLeft", livesLeft);
-			update.setParameter("superiorWin", superior);
-			update.setParameter("dyesUsed", dyesUsed);
-			update.setParameter("randomizersUsed", randomizersUsed);
-			update.setParameter("clocksUsed", clocksUsed);
-			update.setParameter("enderpearlsUsed", enderpearlsUsed);
-			update.setParameter("snowballsUsed", snowballsUsed);
-			update.setParameter("snowballsHit", snowballsHit);
-			update.setParameter("winner", winner);
-			update.setParameter("spGame", !moreThanOnePlayed);
-			update.setParameter("mapId", mapId);
-			update.execute();
+			update.setString(1, game.gameUuid.toString());
+			update.setString(2, uuid.toString());
+			update.setString(3, name);
+			update.setTimestamp(4, new java.sql.Timestamp(startTime.getTime()));
+			update.setTimestamp(5, new java.sql.Timestamp(endTime.getTime()));
+			update.setInt(6, roundsPlayed);
+			update.setInt(7, roundsSurvived);
+			update.setInt(8, deaths);
+			update.setInt(9, livesLeft);
+			update.setBoolean(10, superior);
+			update.setInt(11, dyesUsed);
+			update.setInt(12, randomizersUsed);
+			update.setInt(13, clocksUsed);
+			update.setInt(14, enderpearlsUsed);
+			update.setInt(15, snowballsUsed);
+			update.setInt(16, snowballsHit);
+			update.setBoolean(17, winner);
+			update.setBoolean(18, !moreThanOnePlayed);
+			update.setString(19, mapId);
+			update.executeUpdate();
 			
 			game.getLogger().info("Stored player stats of " + name);
 		}

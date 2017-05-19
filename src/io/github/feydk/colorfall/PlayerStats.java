@@ -1,10 +1,10 @@
 package io.github.feydk.colorfall;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.avaje.ebean.SqlQuery;
-import com.avaje.ebean.SqlRow;
 import com.winthier.minigames.MinigamesPlugin;
 
 public class PlayerStats
@@ -166,28 +166,34 @@ public class PlayerStats
 			"sum(rounds_survived) as rounds_survived, sum(dyes_used) as dyes_used, sum(randomizers_used) as randomizers_used, sum(clocks_used) as clocks_used, " +
 			"sum(enderpearls_used) as enderpearls_used, sum(snowballs_used) as snowballs_used, sum(snowballs_hit) as snowballs_hit " +
 			"from colorfall_playerstats " +
-			"where player_name = :name";
+			"where player_name = ?";
 		
-		SqlQuery query = MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql);
-		query.setParameter("name", name);
-		
-		SqlRow row = query.findUnique();
-		
-		gamesPlayed = row.getInteger("games");
-		
-		if(gamesPlayed > 0)
+		try (PreparedStatement query = MinigamesPlugin.getInstance().getDb().getConnection().prepareStatement(sql))
 		{
-			gamesWon = row.getInteger("wins");
-			deaths = row.getInteger("deaths");
-			roundsPlayed = row.getInteger("rounds_played");
-			roundsSurvived = row.getInteger("rounds_survived");
-			superiorWins = row.getInteger("superior_wins");
-			dyesUsed = row.getInteger("dyes_used");
-			randomizersUsed = row.getInteger("randomizers_used");
-			clocksUsed = row.getInteger("clocks_used");
-			enderpearlsUsed = row.getInteger("enderpearls_used");
-			snowballsUsed = row.getInteger("snowballs_used");
-			snowballsHit = row.getInteger("snowballs_hit");
+			query.setString(1, name);
+			
+			ResultSet row = query.executeQuery();
+			row.next();
+			gamesPlayed = row.getInt("games");
+			
+			if(gamesPlayed > 0)
+			{
+				gamesWon = row.getInt("wins");
+				deaths = row.getInt("deaths");
+				roundsPlayed = row.getInt("rounds_played");
+				roundsSurvived = row.getInt("rounds_survived");
+				superiorWins = row.getInt("superior_wins");
+				dyesUsed = row.getInt("dyes_used");
+				randomizersUsed = row.getInt("randomizers_used");
+				clocksUsed = row.getInt("clocks_used");
+				enderpearlsUsed = row.getInt("enderpearls_used");
+				snowballsUsed = row.getInt("snowballs_used");
+				snowballsHit = row.getInt("snowballs_hit");
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 	}
 	
@@ -202,17 +208,22 @@ public class PlayerStats
 			"order by wins desc, superior_wins desc limit 0, 3";
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
-		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setGamesWon(row.getInteger("wins"));
-			obj.setSuperiorWins(row.getInteger("superior_wins"));
-			
-			list.add(obj);
+
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setGamesWon(row.getInt("wins"));
+				obj.setSuperiorWins(row.getInt("superior_wins"));
+				
+				list.add(obj);
+			}
 		}
-		
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
 		return list;
 	}
 	
@@ -227,14 +238,20 @@ public class PlayerStats
 			"order by dyes desc limit 0, 3";
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
-		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
+
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setDyesUsed(row.getInt("dyes"));
+				
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
 		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setDyesUsed(row.getInteger("dyes"));
-			
-			list.add(obj);
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -252,13 +269,19 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setClocksUsed(row.getInteger("clocks"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setClocksUsed(row.getInt("clocks"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -276,13 +299,19 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setEnderpearlsUsed(row.getInteger("pearls"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setEnderpearlsUsed(row.getInt("pearls"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -300,14 +329,20 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setSnowballsUsed(row.getInteger("balls"));
-			obj.setSnowballsHit(row.getInteger("hits"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setSnowballsUsed(row.getInt("balls"));
+				obj.setSnowballsHit(row.getInt("hits"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -325,13 +360,19 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setRandomizersUsed(row.getInteger("randomizers"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setRandomizersUsed(row.getInt("randomizers"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -349,13 +390,19 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setDeaths(row.getInteger("rips"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setDeaths(row.getInt("rips"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
@@ -372,14 +419,20 @@ public class PlayerStats
 		
 		List<PlayerStats> list = new ArrayList<PlayerStats>();
 		
-		for(SqlRow row : MinigamesPlugin.getInstance().getDatabase().createSqlQuery(sql).findList())
-		{
-			PlayerStats obj = new PlayerStats();
-			obj.setName(row.getString("player_name"));
-			obj.setGamesPlayed(row.getInteger("games"));
-			obj.setRoundsPlayed(row.getInteger("rounds"));
+		try (ResultSet row = MinigamesPlugin.getInstance().getDb().executeQuery(sql)) {
+			while(row.next())
+			{
+				PlayerStats obj = new PlayerStats();
+				obj.setName(row.getString("player_name"));
+				obj.setGamesPlayed(row.getInt("games"));
+				obj.setRoundsPlayed(row.getInt("rounds"));
 			
-			list.add(obj);
+				list.add(obj);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 		
 		return list;
