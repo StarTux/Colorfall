@@ -29,6 +29,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Note;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
@@ -533,7 +534,7 @@ public class ColorfallGame extends Game implements Listener
 					if(!gp.joinedAsSpectator())
 					{
 						gp.makeMobile(player);
-						player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+						player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
 						count++;
 					}
 				}
@@ -568,7 +569,7 @@ public class ColorfallGame extends Game implements Listener
 					//player.setAllowFlight(true);
 					//player.setFlying(true);
 					
-					player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDERDRAGON_DEATH, 1f, 1f);
+					player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDERDRAGON_DEATH, SoundCategory.MASTER, 1f, 1f);
 				}
 				
 				// Restore the map if this state was entered in the removing blocks round state.
@@ -793,7 +794,7 @@ public class ColorfallGame extends Game implements Listener
 				if(seconds == 0)
 				{
 					Title.show(player, ChatColor.GREEN + "Go!", "");
-					player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, 1f, 1f);
+					player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
 				}
 				else if(seconds == countdownToStartDuration)
 				{
@@ -907,7 +908,7 @@ public class ColorfallGame extends Game implements Listener
 					for(Player player : getOnlinePlayers())
 					{
 						Title.show(player, "", title);
-						player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+						player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 1, 1);
 					}
 				}
 			}
@@ -936,7 +937,7 @@ public class ColorfallGame extends Game implements Listener
 			{    		
 				if(seconds <= 0)
 				{
-					player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, 1f, 1f);
+					player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
 				}
 				else
 				{
@@ -1553,7 +1554,7 @@ public class ColorfallGame extends Game implements Listener
 
 				event.getClickedBlock().setData(dataid);
 
-				p.getWorld().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SHEEP_SHEAR, 1, 1);
+				p.getWorld().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SHEEP_SHEAR, SoundCategory.MASTER, 1, 1);
 
 				reduceItemInHand(p);
 				getGamePlayer(p).addDye();
@@ -1619,7 +1620,7 @@ public class ColorfallGame extends Game implements Listener
 					{
 						Msg.send(pp, " " + ChatColor.WHITE + p.getName() + " " + ChatColor.DARK_AQUA + "r" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m" + ChatColor.WHITE + "i" + ChatColor.LIGHT_PURPLE + "z" + ChatColor.AQUA + "e" + ChatColor.GOLD + "d" + ChatColor.WHITE + " the colors!");
 						
-						pp.playSound(pp.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+						pp.playSound(pp.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 1, 1);
 					}
 				}
 				else
