@@ -1786,8 +1786,7 @@ public class ColorfallGame extends Game implements Listener
 
 	public Location getSpawnLocation()
 	{
-		return new Location(world, 255, 60, 255);
-		//return world.getSpawnLocation();
+		return world.getSpawnLocation();
 	}
 
 	@Override
