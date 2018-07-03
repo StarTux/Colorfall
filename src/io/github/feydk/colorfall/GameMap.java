@@ -170,12 +170,12 @@ public class GameMap
             spawnLocationsRandomized = true;
             Collections.shuffle(spawnLocations, random);
         }
-        
+
         if(spawnLocationIter >= spawnLocations.size())
         	spawnLocationIter = 0;
-        
+
         int i = spawnLocationIter++;
-        
+
         return spawnLocations.get(i);
     }
 	
@@ -193,12 +193,12 @@ public class GameMap
             {
                 int x = cx + dx;
                 int z = cz + dz;
-                
+
                 // Find signs to register the blocks used in the map.
                 findChunkSigns(x, z);
             }
         }
-        
+
         // Determine boundaries.
         if(boundaries.size() == 2)
         {
@@ -238,14 +238,14 @@ public class GameMap
         		maxZ = b2.getZ();
         	}
         }
-        
+
         // Then crawl the map again, this time finding all the blocks that needs to be replaced with color blocks.
         for(Point2D point : processedChunks)
         {
         	//debug("chunk " + point.getX() + ", " + point.getY());
         	findBlocksToBeReplaced((int)point.getX(), (int)point.getY());
         }
-        
+
         // Finally replace the blocks we found in the step above.
         // The reason I don't do all this in one step is that I want to guarantee a certain "quality" of the block replacement across all chunks.
         replaceBlocks();
@@ -261,11 +261,11 @@ public class GameMap
     		return;
     	
         processedChunks.add(cc);
-        
+
         // Process the chunk.
         Chunk chunk = world.getChunkAt(x, z);
         chunk.load();
-        
+
         for(BlockState state : chunk.getTileEntities())
         {
             if(state instanceof Sign)
@@ -273,9 +273,9 @@ public class GameMap
             	org.bukkit.material.Sign signMaterial = (org.bukkit.material.Sign)state.getData();
             	Sign signBlock = (Sign)state;
                 Block attachedBlock = state.getBlock().getRelative(signMaterial.getAttachedFace());
-                
+
                 String firstLine = signBlock.getLine(0).toLowerCase();
-                
+
                 if(firstLine != null && firstLine.startsWith("[") && firstLine.endsWith("]"))
                 {
                 	// A sign with [BLOCK] defines that this block is a valid color block in the map. These are the blocks that will be replaced with a block from the color pool.
@@ -325,7 +325,7 @@ public class GameMap
                     	for(int i = 1; i < 4; ++i)
                     	{
                     		String credit = signBlock.getLine(i);
-                            
+
                     		if(credit != null && !credit.isEmpty())
                     			credits.add(credit);
                         }
@@ -366,7 +366,7 @@ public class GameMap
             }
         }
     }
-    
+
     // Searches a chunk for blocks that needs to be replaced.
     @SuppressWarnings("deprecation")
 	private void findBlocksToBeReplaced(int x, int z)
@@ -393,12 +393,12 @@ public class GameMap
     	    }
     	}
     }
-    
+
     public void randomizeBlocks()
     {
     	replaceBlocks();
     }
-    
+
     // Replaces blocks with color blocks.
     // This is a part of the map preparation logic that one potentially could have a little fun with, using different algorithms and such.
     // For now it's real simple by distributing every color from the pool evenly(-ish) throughout the map.
@@ -479,7 +479,7 @@ public class GameMap
     		}
     	}
     }
-    
+
     // Remove blocks that are not the currently active color.
     @SuppressWarnings("deprecation")
 	public void removeBlocks(ColorBlock currentColor)
@@ -545,7 +545,7 @@ public class GameMap
         	}
         }
     }
-    
+
     @SuppressWarnings("deprecation")
 	public void restoreBlocks(List<Block> paintedBlocks)
     {
@@ -571,7 +571,7 @@ public class GameMap
     		}
     	}
     }
-    
+
     public boolean isBlockWithinCuboid(Block b)
     {
         if(boundaries.size() > 0)
@@ -579,13 +579,13 @@ public class GameMap
         	double x = b.getX();
         	double y = b.getY();
         	double z = b.getZ();
-        
+
         	return new Vector(x, y, z).isInAABB(new Vector(minX, minY, minZ), new Vector(maxX, maxY, maxZ));
         }
-        
+
         return true;
     }
-    
+
     @SuppressWarnings("deprecation")
 	public ItemStack getDye()
 	{

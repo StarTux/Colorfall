@@ -50,3 +50,6 @@ dist/Colorfall.jar
 *.project
 .externalToolBuilders/Jar builder.launch
 build.xml
+
+# Maven
+/target
