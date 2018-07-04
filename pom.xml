@@ -61,6 +61,8 @@
 	<includes>
 	  <include>plugin.yml</include>
 	  <include>config.yml</include>
+	  <include>powerups.yml</include>
+	  <include>rounds.yml</include>
 	</includes>
       </resource>
     </resources>

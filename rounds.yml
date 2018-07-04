@@ -1,0 +1,64 @@
+# Round options:
+# duration: in seconds
+# pvp: chance of pvp being enabled
+# collision: enable player collisions
+# randomize: chance of a randomize event occuring during the round
+# powerups: EnderPearl, SpecialDye, SpecialClock, Snowballs, Randomizer
+
+# All options MUST be configured for every round node. The order of rounds must also be in ascending order.
+
+1:
+  duration: 20
+  pvp: 0
+  collision: false
+  randomize: 0
+  powerups:
+    EnderPearl: 1
+    SpecialDye: 5
+    SpecialClock: 1
+    Snowballs: 1
+    Randomizer: 1
+4:
+  duration: 15
+  pvp: 30
+  collision: false
+  randomize: 20
+  powerups:
+    EnderPearl: 10
+    SpecialDye: 15
+    SpecialClock: 5
+    Snowballs: 5
+    Randomizer: 5
+10:
+  duration: 15
+  pvp: 60
+  collision: false
+  randomize: 20
+  powerups:
+    EnderPearl: 20
+    SpecialDye: 30
+    SpecialClock: 10
+    Snowballs: 10
+    Randomizer: 10
+20:
+  duration: 10
+  pvp: 100
+  collision: true
+  randomize: 50
+  powerups:
+    EnderPearl: 30
+    SpecialDye: 40
+    SpecialClock: 20
+    Snowballs: 60
+    Randomizer: 60
+30:
+  duration: 7
+  pvp: 100
+  collision: true
+  randomize: 100
+  powerups:
+    EnderPearl: 30
+    SpecialDye: 40
+    SpecialClock: 20
+    Snowballs: 60
+    Randomizer: 60

@@ -1,0 +1,38 @@
+﻿EnderPearl:
+  ==: org.bukkit.inventory.ItemStack
+  type: ENDER_PEARL
+Snowballs:
+  ==: org.bukkit.inventory.ItemStack
+  type: SNOW_BALL
+SpecialDye:
+  ==: org.bukkit.inventory.ItemStack
+  type: INK_SACK
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+    display-name: §rDye blocks
+    lore:
+    - §3Turn a colored block 
+    - §3into this color.
+    - §3The block will reset
+    - §3when the round is over.
+SpecialClock:
+  ==: org.bukkit.inventory.ItemStack
+  type: WATCH
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+    display-name: §rStop time
+    lore:
+    - §3Use the clock to extend
+    - §3the round with 5 seconds.
+Randomizer:
+  ==: org.bukkit.inventory.ItemStack
+  type: EMERALD
+  meta:
+    ==: ItemMeta
+    meta-type: UNSPECIFIC
+    display-name: §rRandomizer
+    lore:
+    - §3Use this to shuffle 
+    - §3the map colors.

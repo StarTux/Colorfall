@@ -156,8 +156,9 @@ public class ColorfallGame extends JavaPlugin implements Listener
     @Override
     public void onEnable() {
         db = new SQLDatabase(this);
-
-        ConfigurationSection config = getConfig();
+        saveDefaultConfig();
+        saveResource("powerups.yml", false);
+        saveResource("rounds.yml", false);
 
         // Game config saved by Daemon
         try {
@@ -173,6 +174,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
+
+        ConfigurationSection config = getConfig();
 
         map = new GameMap(config.getInt("general.chunkRadius"), this);
 
