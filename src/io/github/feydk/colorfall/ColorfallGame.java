@@ -168,6 +168,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 mapID = gameConfig.getString("map_id", mapID);
                 debug = gameConfig.getBoolean("debug", debug);
                 if (gameConfig.isString("unique_id")) gameUuid = UUID.fromString(gameConfig.getString("unique_id"));
+                for (String ids: (List<String>)gameConfig.get("members")) {
+                    UUID playerId = UUID.fromString(ids);
+                    gamePlayers.put(playerId, new GamePlayer(this, playerId));
+                }
             } else {
                 mapID = "N/A";
             }
@@ -234,8 +238,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
         // Load the world
         try {
-            ConfigurationSection worldConfig = new YamlConfiguration().createSection("tmp", (Map<String, Object>)JSONValue.parse(new FileReader("world_config.json")));
-            WorldCreator creator = WorldCreator.name(mapID);
+            ConfigurationSection worldConfig = YamlConfiguration.loadConfiguration(new FileReader("GameWorld/config.yml"));
+            WorldCreator creator = WorldCreator.name("GameWorld");
             creator.type(WorldType.FLAT);
             creator.generator("VoidGenerator");
             creator.environment(World.Environment.valueOf(worldConfig.getString("world.Environment").toUpperCase()));
@@ -393,8 +397,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
     private void onTick()
     {
         ticks++;
-        if (didSomeoneJoin && getServer().getOnlinePlayers().isEmpty()) {
-            getLogger().info("Shutting down because the server is empty");
+        if (gamePlayers.isEmpty()) {
+            getLogger().info("Shutting down because all players have quit");
             getServer().shutdown();
             return;
         }
@@ -828,7 +832,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                                 list.add(format(" &fClick here when ready: "));
                                 list.add(button("&3[Ready]", "&3Mark yourself as ready", "/ready"));
                                 list.add(format("&f or "));
-                                list.add(button("&c[Leave]", "&cLeave this game", "/leave"));
+                                list.add(button("&c[Quit]", "&cLeave this game", "/quit"));
 
                                 sendRaw(player, list);
                             }
@@ -1079,7 +1083,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                         List<Object> list = new ArrayList<>();
                         list.add(" Click here to leave the game: ");
-                        list.add(button("&c[Leave]", "&cLeave this game", "/leave"));
+                        list.add(button("&c[Quit]", "&cLeave this game", "/quit"));
                         sendRaw(player, list);
                     }
             }
@@ -1499,7 +1503,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
             {
                 showStats(player, (args.length == 0 ? player.getName() : args[0]));
             }
-        else if(command.equalsIgnoreCase("leave") || command.equalsIgnoreCase("quit"))
+        else if(command.equalsIgnoreCase("quit"))
             {
                 daemonRemovePlayer(player.getUniqueId());
             }
