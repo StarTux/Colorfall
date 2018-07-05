@@ -575,7 +575,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
     }
 
     void daemonAddPlayer(UUID uuid) {
-        gamePlayers.remove(uuid);
         Map<String, Object> map = new HashMap<>();
         map.put("action", "game_add_player");
         map.put("player", uuid.toString());
@@ -584,11 +583,26 @@ public class ColorfallGame extends JavaPlugin implements Listener
     }
 
     void daemonAddSpectator(UUID uuid) {
-        gamePlayers.remove(uuid);
         Map<String, Object> map = new HashMap<>();
         map.put("action", "game_add_spectator");
         map.put("player", uuid.toString());
         map.put("game", gameUuid.toString());
+        Connect.getInstance().send("daemon", "minigames", map);
+    }
+
+    void daemonGameEnd() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("action", "game_end");
+        map.put("game", gameUuid.toString());
+        Connect.getInstance().send("daemon", "minigames", map);
+    }
+
+    void daemonGameConfig(String key, Object value) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("action", "game_config");
+        map.put("game", gameUuid.toString());
+        map.put("key", key);
+        map.put("value", value);
         Connect.getInstance().send("daemon", "minigames", map);
     }
 
@@ -605,6 +619,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 scoreboard.setTitle(ChatColor.GREEN + "Waiting");
                 break;
             case COUNTDOWN_TO_START:
+                daemonGameConfig("players_may_join", false);
                 scoreboard.setTitle(ChatColor.GREEN + "Get ready..");
 
                 // Once the countdown starts, remove everyone who disconnected.
@@ -663,6 +678,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                 break;
             case END:
+                daemonGameEnd();
                 for(Player player : getServer().getOnlinePlayers())
                     {
                         getGamePlayer(player).setSpectator();
@@ -1882,13 +1898,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
             case COUNTDOWN_TO_START:
                 return getGamePlayer(player).getSpawnLocation();
             default:
-                if(getGamePlayer(player).isSpectator())
-                    {
-                        return world.getSpawnLocation();
-                    }
+                return world.getSpawnLocation();
             }
-
-        return null;
     }
 
     String getStatsJson(int type)
