@@ -53,3 +53,4 @@ build.xml
 
 # Maven
 /target
+/tmp
