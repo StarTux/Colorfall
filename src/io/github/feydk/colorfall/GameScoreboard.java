@@ -50,7 +50,6 @@ public class GameScoreboard
     }
 
     // Add a player to the scoreboard.
-    @SuppressWarnings("deprecation")
     public void addPlayer(Player player)
     {
         player.setScoreboard(board);
@@ -76,20 +75,17 @@ public class GameScoreboard
     }
 
     // When a player is eliminated, make his name dark red in the scoreboard.
-    @SuppressWarnings("deprecation")
     public void setPlayerEliminated(Player player)
     {
         board.resetScores(player);
         objective.getScore(ColorfallGame.format("&4%s", player.getName())).setScore(0);
     }
 
-    @SuppressWarnings("deprecation")
     public void removePlayer(Player player)
     {
         board.resetScores(player);
     }
 
-    @SuppressWarnings("deprecation")
     public void updatePlayers()
     {
         for(OfflinePlayer player : board.getPlayers())
@@ -117,7 +113,6 @@ public class GameScoreboard
     }
 
     // Set player score.
-    @SuppressWarnings("deprecation")
     public void setPlayerScore(Player player, int score)
     {
         objective.getScore(player).setScore(score);

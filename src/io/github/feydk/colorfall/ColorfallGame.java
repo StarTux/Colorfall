@@ -56,6 +56,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -483,7 +484,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
             }
 
         // Check for disconnects.
-        for(GamePlayer gp : gamePlayers.values())
+        for(GamePlayer gp : new ArrayList<>(gamePlayers.values()))
             {
                 Player player = getServer().getPlayer(gp.uuid);
                 if (player != null) gp.onTick(player);
@@ -686,7 +687,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         //player.setAllowFlight(true);
                         //player.setFlying(true);
 
-                        player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDERDRAGON_DEATH, SoundCategory.MASTER, 1f, 1f);
+                        player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, SoundCategory.MASTER, 1f, 1f);
                     }
 
                 // Restore the map if this state was entered in the removing blocks round state.
@@ -754,7 +755,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
                             }
 
                         // Announce pvp and color.
-                        showTitle(player, (world.getPVP() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase());
+                        Color color = Color.fromBlockData(currentColor.blockData);
+                        showTitle(player, (world.getPVP() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + color.toChatColor() + color.niceName);
                     }
 
                 break;
@@ -776,7 +778,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
             }
     }
 
-    @SuppressWarnings("deprecation")
     private void setColorForRound()
     {
         ColorBlock pick;
@@ -788,7 +789,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
             }
 
         // Item for the new color block.
-        ItemStack stack = new ItemStack(pick.TypeId, 1, (short)0, (byte)pick.DataId);
+        ItemStack stack = new ItemStack(pick.blockData.getMaterial());
 
         // Remove all color blocks from player inventories and give them the new one.
         for(Player player : getServer().getOnlinePlayers())
@@ -796,7 +797,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 Inventory inv = player.getInventory();
 
                 if(currentColor != null)
-                    inv.remove(Material.getMaterial(currentColor.TypeId));
+                    inv.remove(currentColor.blockData.getMaterial());
 
                 inv.addItem(stack);
             }
@@ -899,7 +900,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
     {
         long timeLeft = (countdownToStartDuration * 20) - ticks;
 
-        // Every second.. 
+        // Every second..
         if(timeLeft % 20L == 0)
             {
                 long seconds = timeLeft / 20;
@@ -907,11 +908,11 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 scoreboard.refreshTitle(timeLeft);
 
                 for(Player player : getServer().getOnlinePlayers())
-                    {   
+                    {
                         if(seconds == 0)
                             {
                                 showTitle(player, ChatColor.GREEN + "Go!", "");
-                                player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
+                                player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
                             }
                         else if(seconds == countdownToStartDuration)
                             {
@@ -975,12 +976,13 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 String actionMsg = (world.getPVP() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
 
                 // If it's night time or if we're in the end, use white color.
-                if(world.getTime() >= 13000 || world.getBiome(255, 255) == Biome.SKY)
+                if(world.getTime() >= 13000 || world.getEnvironment() == World.Environment.THE_END)
                     actionMsg += ChatColor.WHITE;
                 else
                     actionMsg += ChatColor.BLACK;
 
-                actionMsg += "The color of this round is " + translateToChatColor(currentColor.DataId) + translateToColor(currentColor.DataId).toUpperCase();
+                Color color = Color.fromBlockData(currentColor.blockData);
+                actionMsg += "The color of this round is " + color.toChatColor() + color.niceName;
 
                 long seconds = roundTimeLeft / 20;
 
@@ -1051,10 +1053,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 long seconds = roundTimeLeft / 20;
 
                 for(Player player : getServer().getOnlinePlayers())
-                    {                   
+                    {
                         if(seconds <= 0)
                             {
-                                player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
+                                player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, SoundCategory.MASTER, 1f, 1f);
                             }
                         else
                             {
@@ -1404,7 +1406,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
         player.getInventory().setItem(2, map.getDye());
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public boolean onCommand(CommandSender sender, Command bcommand, String command, String[] args)
     {
@@ -1421,45 +1422,11 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 String key = args[0];
                 ItemStack stack = powerups.get(key);
 
-                if(stack.getTypeId() == 351)
+                if(args[0].equals("SpecialDye"))
                     {
                         ColorBlock cb = map.getRandomFromColorPool();
-                        byte dataid = 0;
 
-                        if(cb.DataId == 0)                      // white
-                            dataid = 15;
-                        else if(cb.DataId == 1)         // orange
-                            dataid = 14;
-                        else if(cb.DataId == 2)         // magenta
-                            dataid = 13;
-                        else if(cb.DataId == 3)         // light blue
-                            dataid = 12;
-                        else if(cb.DataId == 4)         // yellow
-                            dataid = 11;
-                        else if(cb.DataId == 5)         // lime
-                            dataid = 10;
-                        else if(cb.DataId == 6)         // pink
-                            dataid = 9;
-                        else if(cb.DataId == 7)         // gray
-                            dataid = 8;
-                        else if(cb.DataId == 8)         // light gray
-                            dataid = 7;
-                        else if(cb.DataId == 9)         // cyan
-                            dataid = 6;
-                        else if(cb.DataId == 10)        // purple
-                            dataid = 5;
-                        else if(cb.DataId == 11)        // blue
-                            dataid = 4;
-                        else if(cb.DataId == 12)        // brown
-                            dataid = 3;
-                        else if(cb.DataId == 13)        // green
-                            dataid = 2;
-                        else if(cb.DataId == 14)        // red
-                            dataid = 1;
-                        else if(cb.DataId == 15)        // black
-                            dataid = 0;
-
-                        ItemStack newStack = new ItemStack(stack.getTypeId(), 1, (short)0, dataid);
+                        ItemStack newStack = new ItemStack(cb.blockData.getMaterial());
                         ItemMeta meta = newStack.getItemMeta();
 
                         meta.setLore(stack.getItemMeta().getLore());
@@ -1568,24 +1535,27 @@ public class ColorfallGame extends JavaPlugin implements Listener
         announce("&a%s", event.getBlock().getType());
     }
 
-    @SuppressWarnings("deprecation")
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event)
     {
+        if (event.getHand() != EquipmentSlot.HAND) return;
         final Player p = event.getPlayer();
-        if(p.getItemInHand().getType() == Material.FEATHER && event.getAction() == Action.RIGHT_CLICK_BLOCK)
+        ItemStack hand = p.getInventory().getItemInMainHand();
+        if (hand == null || hand.getType() == Material.AIR) return;
+        if(hand.getType() == Material.FEATHER && event.getAction() == Action.RIGHT_CLICK_BLOCK)
             {
                 Block b = event.getClickedBlock();
 
                 if(map.isColoredBlock(b))
                     {
-                        if(b.getType() != Material.AIR && b.getTypeId() == currentColor.TypeId && b.getData() == currentColor.DataId)
+                        Color color = Color.fromBlockData(b.getBlockData());
+                        if(b.getType() != Material.AIR && b.getBlockData().equals(currentColor.blockData))
                             {
-                                send(p, ChatColor.GREEN + " That block is " + translateToColor(b.getData()) + ", and it is the right one!");
+                                send(p, ChatColor.GREEN + " That block is " + color.niceName + ", and it is the right one!");
                             }
                         else
                             {
-                                send(p, ChatColor.RED + " That block is " + translateToColor(b.getData()) + ". That's not the right one!");
+                                send(p, ChatColor.RED + " That block is " + color.niceName + ". That's not the right one!");
                             }
                     }
             }
@@ -1593,56 +1563,24 @@ public class ColorfallGame extends JavaPlugin implements Listener
         if(roundState == RoundState.RUNNING)
             {
                 // Dyes.
-                if(p.getItemInHand().getTypeId() == 351 && event.getAction() == Action.RIGHT_CLICK_BLOCK && map.isColoredBlock(event.getClickedBlock()))
+                Color dyeColor = Color.fromDyeMaterial(hand.getType());
+                if(dyeColor != null && event.getAction() == Action.RIGHT_CLICK_BLOCK && map.isColoredBlock(event.getClickedBlock()))
                     {
-                        byte dye = p.getItemInHand().getData().getData();
-                        byte dataid = 0;
-
-                        if(dye == 15)           // white
-                            dataid = 0;
-                        else if(dye == 14)      // orange
-                            dataid = 1;
-                        else if(dye == 13)      // magenta
-                            dataid = 2;
-                        else if(dye == 12)      // light blue
-                            dataid = 3;
-                        else if(dye == 11)      // yellow
-                            dataid = 4;
-                        else if(dye == 10)      // lime
-                            dataid = 5;
-                        else if(dye == 9)       // pink
-                            dataid = 6;
-                        else if(dye == 8)       // gray
-                            dataid = 7;
-                        else if(dye == 7)       // light gray
-                            dataid = 8;
-                        else if(dye == 6)       // cyan
-                            dataid = 9;
-                        else if(dye == 5)       // purple
-                            dataid = 10;
-                        else if(dye == 4)       // blue
-                            dataid = 11;
-                        else if(dye == 3)       // brown
-                            dataid = 12;
-                        else if(dye == 2)       // green
-                            dataid = 13;
-                        else if(dye == 1)       // red
-                            dataid = 14;
-                        else if(dye == 0)       // black
-                            dataid = 15;
+                        Block block = event.getClickedBlock();
+                        Color blockColor = Color.fromBlockData(block.getBlockData());
 
                         // Don't bother if block is already same color as the dye.
-                        if(event.getClickedBlock().getData() == dataid)
+                        if(blockColor == dyeColor)
                             return;
 
                         // Only register the original color once, in case a block is dyed multiple times.
                         if(!paintedBlocks.contains(event.getClickedBlock()))
                             {
-                                event.getClickedBlock().setMetadata("org-color", new FixedMetadataValue(this, event.getClickedBlock().getData()));
+                                event.getClickedBlock().setMetadata("org-color", new FixedMetadataValue(this, event.getClickedBlock().getBlockData()));
                                 paintedBlocks.add(event.getClickedBlock());
                             }
 
-                        event.getClickedBlock().setData(dataid);
+                        block.setBlockData(dyeColor.stain(block.getBlockData()));
 
                         p.getWorld().playSound(event.getClickedBlock().getLocation(), Sound.ENTITY_SHEEP_SHEAR, SoundCategory.MASTER, 1, 1);
 
@@ -1670,11 +1608,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
         tryUseItemInHand(event.getPlayer());
     }
 
-    @SuppressWarnings("deprecation")
     void tryUseItemInHand(Player p)
     {
         // The clock.
-        if(p.getItemInHand().getType() == Material.WATCH)
+        if(p.getItemInHand().getType() == Material.CLOCK)
             {
                 for(Player pp : getServer().getOnlinePlayers())
                     {
@@ -1734,121 +1671,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
         event.setCancelled(true);
     }
 
-    public String translateToColor(byte dataid)
-    {
-        if(dataid == 0)                         // white
-            return "white";
-        else if(dataid == 1)            // orange
-            return "orange";
-        else if(dataid == 2)            // magenta
-            return "magenta";
-        else if(dataid == 3)            // light blue
-            return "light blue";
-        else if(dataid == 4)            // yellow
-            return "yellow";
-        else if(dataid == 5)            // lime
-            return "lime";
-        else if(dataid == 6)            // pink
-            return "pink";
-        else if(dataid == 7)            // gray
-            return "gray";
-        else if(dataid == 8)            // light gray
-            return "light gray";
-        else if(dataid == 9)            // cyan
-            return "cyan";
-        else if(dataid == 10)           // purple
-            return "purple";
-        else if(dataid == 11)           // blue
-            return "blue";
-        else if(dataid == 12)           // brown
-            return "brown";
-        else if(dataid == 13)           // green
-            return "green";
-        else if(dataid == 14)           // red
-            return "red";
-        else if(dataid == 15)           // black
-            return "black";
-
-        return "";
-    }
-
-    public byte translateToDataId(byte value)
-    {
-        if(value == 0)                  // white
-            return 15;
-        else if(value == 1)             // orange
-            return 14;
-        else if(value == 2)             // magenta
-            return 13;
-        else if(value == 3)             // light blue
-            return 12;
-        else if(value == 4)             // yellow
-            return 11;
-        else if(value == 5)             // lime
-            return 10;
-        else if(value == 6)             // pink
-            return 9;
-        else if(value == 7)             // gray
-            return 8;
-        else if(value == 8)             // light gray
-            return 7;
-        else if(value == 9)             // cyan
-            return 6;
-        else if(value == 10)    // purple
-            return 5;
-        else if(value == 11)    // blue
-            return 4;
-        else if(value == 12)    // brown
-            return 3;
-        else if(value == 13)    // green
-            return 2;
-        else if(value == 14)    // red
-            return 1;
-        else if(value == 15)    // black
-            return 0;
-
-        return 0;
-    }
-
-    private ChatColor translateToChatColor(byte dataid)
-    {
-        if(dataid == 0)                         // white
-            return ChatColor.WHITE;
-        else if(dataid == 1)            // orange
-            return ChatColor.GOLD;
-        else if(dataid == 2)            // magenta
-            return ChatColor.BLUE;
-        else if(dataid == 3)            // light blue
-            return ChatColor.AQUA;
-        else if(dataid == 4)            // yellow
-            return ChatColor.YELLOW;
-        else if(dataid == 5)            // lime
-            return ChatColor.GREEN;
-        else if(dataid == 6)            // pink
-            return ChatColor.LIGHT_PURPLE;
-        else if(dataid == 7)            // gray
-            return ChatColor.DARK_GRAY;
-        else if(dataid == 8)            // light gray
-            return ChatColor.GRAY;
-        else if(dataid == 9)            // cyan
-            return ChatColor.DARK_AQUA;
-        else if(dataid == 10)           // purple
-            return ChatColor.DARK_PURPLE;
-        else if(dataid == 11)           // blue
-            return ChatColor.DARK_BLUE;
-        else if(dataid == 12)           // brown
-            return ChatColor.DARK_RED;
-        else if(dataid == 13)           // green
-            return ChatColor.DARK_GREEN;
-        else if(dataid == 14)           // red
-            return ChatColor.RED;
-        else if(dataid == 15)           // black
-            return ChatColor.BLACK;
-
-        return ChatColor.WHITE;
-    }
-
-    @SuppressWarnings("deprecation")
     private void reduceItemInHand(Player player)
     {
         ItemStack item = player.getItemInHand();
@@ -1919,7 +1741,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
             {
                 List<PlayerStats> list = PlayerStats.loadTopWinners(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top dogs §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top dogs §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -1934,21 +1756,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         if(obj.getSuperiorWins() > 0)
                             json += "{\"text\": \"§f, of which §b" + obj.getSuperiorWins() + " §f" + (obj.getSuperiorWins() == 1 ? "is a" : "are") + " §asuperior win" + (obj.getSuperiorWins() == 1 ? "" : "s") + "\"}, ";
 
-                        json += "{\"text\": \"§f.\n\"}, ";
+                        json += "{\"text\": \"§f.\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 1)
             {
                 List<PlayerStats> list = PlayerStats.loadTopPainters(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top painters §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top painters §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -1958,21 +1780,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else
                             json += "{\"text\": \" §3Runner-up: \"}, ";
 
-                        json += "{\"text\": \"§b" + obj.getName() + " §fhas used §b" + obj.getDyesUsed() + " §fdye" + (obj.getDyesUsed() == 1 ? "" : "s") + ".\n\"}, ";
+                        json += "{\"text\": \"§b" + obj.getName() + " §fhas used §b" + obj.getDyesUsed() + " §fdye" + (obj.getDyesUsed() == 1 ? "" : "s") + ".\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 2)
             {
                 List<PlayerStats> list = PlayerStats.loadTopClockers(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top manipulators of time §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top manipulators of time §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -1982,21 +1804,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else
                             json += "{\"text\": \" §3Runner-up: \"}, ";
 
-                        json += "{\"text\": \"§b" + obj.getName() + " §fextended the time §b" + obj.getClocksUsed() + " §ftime" + (obj.getClocksUsed() == 1 ? "" : "s") + ".\n\"}, ";
+                        json += "{\"text\": \"§b" + obj.getName() + " §fextended the time §b" + obj.getClocksUsed() + " §ftime" + (obj.getClocksUsed() == 1 ? "" : "s") + ".\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 3)
             {
                 List<PlayerStats> list = PlayerStats.loadTopPearlers(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top dislocators §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top dislocators §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -2006,21 +1828,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else
                             json += "{\"text\": \" §3Runner-up: \"}, ";
 
-                        json += "{\"text\": \"§b" + obj.getName() + " §fhas thrown §b" + obj.getEnderpearlsUsed() + " §fender pearl" + (obj.getEnderpearlsUsed() == 1 ? "" : "s") + ".\n\"}, ";
+                        json += "{\"text\": \"§b" + obj.getName() + " §fhas thrown §b" + obj.getEnderpearlsUsed() + " §fender pearl" + (obj.getEnderpearlsUsed() == 1 ? "" : "s") + ".\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 4)
             {
                 List<PlayerStats> list = PlayerStats.loadTopSnowballers(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top trigger happy players §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top trigger happy players §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -2035,21 +1857,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         if(obj.getSnowballsHit() > 0)
                             json += "{\"text\": \"§f, of which §b" + obj.getSnowballsHit() + " §fhit their target\"}, ";
 
-                        json += "{\"text\": \"§f.\n\"}, ";
+                        json += "{\"text\": \"§f.\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 5)
             {
                 List<PlayerStats> list = PlayerStats.loadTopRandomizers(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top randomizers §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top randomizers §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -2059,21 +1881,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else
                             json += "{\"text\": \" §3Runner-up: \"}, ";
 
-                        json += "{\"text\": \"§b" + obj.getName() + " §fhas used §b" + obj.getRandomizersUsed() + " §frandomizer" + (obj.getRandomizersUsed() == 1 ? "" : "s") + ".\n\"}, ";
+                        json += "{\"text\": \"§b" + obj.getName() + " §fhas used §b" + obj.getRandomizersUsed() + " §frandomizer" + (obj.getRandomizersUsed() == 1 ? "" : "s") + ".\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 6)
             {
                 List<PlayerStats> list = PlayerStats.loadTopDeaths(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top investigators of the Void §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top investigators of the Void §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -2083,21 +1905,21 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else
                             json += "{\"text\": \" §3Runner-up: \"}, ";
 
-                        json += "{\"text\": \"§b" + obj.getName() + " §fdied §b" + obj.getDeaths() + " §ftime" + (obj.getDeaths() == 1 ? "" : "s") + ".\n\"}, ";
+                        json += "{\"text\": \"§b" + obj.getName() + " §fdied §b" + obj.getDeaths() + " §ftime" + (obj.getDeaths() == 1 ? "" : "s") + ".\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
         else if(type == 7)
             {
                 List<PlayerStats> list = PlayerStats.loadTopContestants(this);
 
-                json += "{\"text\": \" §6»» §bColorfall top contestants §6««\n\"}, ";
+                json += "{\"text\": \" §6»» §bColorfall top contestants §6««\\n\"}, ";
 
                 int i = 0;
                 for(PlayerStats obj : list)
@@ -2112,18 +1934,18 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         if(obj.getRoundsPlayed() > 0)
                             json += "{\"text\": \"§f, and a total of §b" + obj.getRoundsPlayed() + " §fround" + (obj.getRoundsPlayed() == 1 ? "" : "s") + "\"}, ";
 
-                        json += "{\"text\": \"§f.\n\"}, ";
+                        json += "{\"text\": \"§f.\\n\"}, ";
 
                         i++;
                     }
 
                 if(i == 0)
                     {
-                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\n\"}, ";
+                        json += "{\"text\": \" §fNothing in this category yet. You can be the first ?\\n\"}, ";
                     }
             }
 
-        json += "{\"text\": \"\n §eOther stats:\n\"}, ";
+        json += "{\"text\": \"\\n §eOther stats:\\n\"}, ";
 
         if(type != 0)
             json += "{\"text\": \" §f[§bWins§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/hi 0\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee who won the most games.\"}}, ";
@@ -2137,7 +1959,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
         if(type != 1)
             json += "{\"text\": \" §f[§bPainters§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/hi 1\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee who used the most dyes.\"}}, ";
 
-        json += "{\"text\": \"\n\"}, ";
+        json += "{\"text\": \"\\n\"}, ";
 
         if(type != 2)
             json += "{\"text\": \" §f[§bClockers§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/hi 2\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee who used the most clocks.\"}}, ";
@@ -2151,9 +1973,9 @@ public class ColorfallGame extends JavaPlugin implements Listener
         if(type != 5)
             json += "{\"text\": \" §f[§bRandomizers§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/hi 5\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee who used the most randomizers.\"}}, ";
 
-        json += "{\"text\": \"\n §f[§6See your own stats§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/stats\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee your personal stats.\"}}, ";
+        json += "{\"text\": \"\\n §f[§6See your own stats§f]\", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/stats\" }, \"hoverEvent\": {\"action\": \"show_text\", \"value\": \"§fSee your personal stats.\"}}, ";
 
-        json += "{\"text\": \" \n\"} ";
+        json += "{\"text\": \" \\n\"} ";
         json += "] ";
 
         return json;
@@ -2167,26 +1989,26 @@ public class ColorfallGame extends JavaPlugin implements Listener
         if(stats.getGamesPlayed() > 0)
             {
                 String json = "[";
-                json += "{\"text\": \" §3§l§m   §3 Stats for §b" + name + " §3§l§m   \n\"}, ";
+                json += "{\"text\": \" §3§l§m   §3 Stats for §b" + name + " §3§l§m   \\n\"}, ";
 
                 String who = player.getName().equalsIgnoreCase(name) ? "You have" : name + " has";
 
-                json += "{\"text\": \" §f" + who + " played §b" + stats.getGamesPlayed() + " §fgame" + (stats.getGamesPlayed() == 1 ? "" : "s") + " of Colorfall.\n\"}, ";
-                json += "{\"text\": \" §6Notable stats:\n\"}, ";
+                json += "{\"text\": \" §f" + who + " played §b" + stats.getGamesPlayed() + " §fgame" + (stats.getGamesPlayed() == 1 ? "" : "s") + " of Colorfall.\\n\"}, ";
+                json += "{\"text\": \" §6Notable stats:\\n\"}, ";
                 json += "{\"text\": \" §b" + stats.getGamesWon() + " §fwin" + (stats.getGamesWon() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getSuperiorWins() + " §fsuperior win" + (stats.getSuperiorWins() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getDeaths() + " §fdeath" + (stats.getDeaths() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getRoundsPlayed() + " §fround" + (stats.getRoundsPlayed() == 1 ? "" : "s") + " played §7/\"}, ";
-                json += "{\"text\": \" §b" + stats.getRoundsSurvived() + " §fround" + (stats.getRoundsSurvived() == 1 ? "" : "s") + " survived\n\"}, ";
+                json += "{\"text\": \" §b" + stats.getRoundsSurvived() + " §fround" + (stats.getRoundsSurvived() == 1 ? "" : "s") + " survived\\n\"}, ";
 
-                json += "{\"text\": \" §6Powerups used:\n\"}, ";
+                json += "{\"text\": \" §6Powerups used:\\n\"}, ";
                 json += "{\"text\": \" §b" + stats.getDyesUsed() + " §fdye" + (stats.getDyesUsed() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getRandomizersUsed() + " §frandomizer" + (stats.getRandomizersUsed() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getClocksUsed() + " §fclock" + (stats.getClocksUsed() == 1 ? "" : "s") + " §7/\"}, ";
                 json += "{\"text\": \" §b" + stats.getEnderpearlsUsed() + " §fenderpearl" + (stats.getEnderpearlsUsed() == 1 ? "" : "s") + " §7/\"}, ";
-                json += "{\"text\": \" §b" + stats.getSnowballsUsed() + " §fsnowball" + (stats.getSnowballsUsed() == 1 ? "" : "s") + " \n\"}, ";
+                json += "{\"text\": \" §b" + stats.getSnowballsUsed() + " §fsnowball" + (stats.getSnowballsUsed() == 1 ? "" : "s") + " \\n\"}, ";
 
-                json += "{\"text\": \" \n\"} ";
+                json += "{\"text\": \" \\n\"} ";
                 json += "] ";
 
                 sendJsonMessage(player, json);

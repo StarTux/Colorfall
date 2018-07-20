@@ -1,12 +1,15 @@
 ﻿EnderPearl:
   ==: org.bukkit.inventory.ItemStack
+  v: 0
   type: ENDER_PEARL
 Snowballs:
   ==: org.bukkit.inventory.ItemStack
-  type: SNOW_BALL
+  v: 0
+  type: SNOWBALL
 SpecialDye:
   ==: org.bukkit.inventory.ItemStack
-  type: INK_SACK
+  v: 0
+  type: INK_SAC
   meta:
     ==: ItemMeta
     meta-type: UNSPECIFIC
@@ -18,7 +21,8 @@ SpecialDye:
     - §3when the round is over.
 SpecialClock:
   ==: org.bukkit.inventory.ItemStack
-  type: WATCH
+  v: 0
+  type: CLOCK
   meta:
     ==: ItemMeta
     meta-type: UNSPECIFIC
@@ -28,6 +32,7 @@ SpecialClock:
     - §3the round with 5 seconds.
 Randomizer:
   ==: org.bukkit.inventory.ItemStack
+  v: 0
   type: EMERALD
   meta:
     ==: ItemMeta
