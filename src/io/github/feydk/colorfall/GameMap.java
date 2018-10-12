@@ -484,13 +484,13 @@ public class GameMap
             {
                 Chunk chunk = world.getChunkAt((int)point.getX(), (int)point.getY());
 
-                for(int cx = 0; cx <= 16; cx++)
+                for(int cx = 0; cx < 16; cx++)
                     {
-                        for(int cy = 0; cy <= 256; cy++)
+                        for(int cy = 0; cy < 256; cy++)
                             {
                                 // Do this twice; first time for unsolid blocks, second time for solid blocks.
 
-                                for(int cz = 0; cz <= 16; cz++)
+                                for(int cz = 0; cz < 16; cz++)
                                     {
                                         Block b = chunk.getBlock(cx, cy, cz);
 
@@ -512,7 +512,7 @@ public class GameMap
                                             }
                                     }
 
-                                for(int cz = 0; cz <= 16; cz++)
+                                for(int cz = 0; cz < 16; cz++)
                                     {
                                         Block b = chunk.getBlock(cx, cy, cz);
 
