@@ -369,11 +369,11 @@ public class GameMap
     {
         Chunk chunk = world.getChunkAt(x, z);
 
-        for(int cx = 0; cx <= 16; cx++)
+        for(int cx = 0; cx < 16; cx++)
             {
-                for(int cy = 0; cy <= 256; cy++)
+                for(int cy = 0; cy < 256; cy++)
                     {
-                        for(int cz = 0; cz <= 16; cz++)
+                        for(int cz = 0; cz < 16; cz++)
                             {
                                 Block b = chunk.getBlock(cx, cy, cz);
 
