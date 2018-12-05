@@ -2,7 +2,7 @@ package io.github.feydk.colorfall;
 
 import com.winthier.connect.Connect;
 import com.winthier.connect.Message;
-import com.winthier.connect.bukkit.event.ConnectMessageEvent;
+import com.winthier.connect.event.ConnectMessageEvent;
 import com.winthier.sql.SQLDatabase;
 import io.github.feydk.colorfall.GameMap.ColorBlock;
 import java.io.File;
