@@ -7,7 +7,7 @@ general:
   # How many seconds a player is allowed to be disconnected before being kicked from the game.
   disconnectLimit: 10
   # Duration of WAIT_FOR_PLAYERS stage (where players can join the game).
-  waitForPlayersDuration: 60
+  waitForPlayersDuration: 600
   # Duration of COUNTDOWN_TO_START stage.
   countdownToStartDuration: 5
   # Duration of the STARTED stage, which is the stage with the actual game play. If set to 0, there is no limit (recommended).
@@ -16,3 +16,41 @@ general:
   endDuration: 30
   # Number of lives players should start with.
   lives: 3
+
+maps:
+- Colorhunt
+- MrShooma
+- FreeBird
+- Lotus_the_end
+- Orbit
+- KingTommo
+- NyanRun_the_end
+- TreesLife
+- KarateGirl
+- Carrotfall
+- Titanius
+- FlowerPower
+- kalista
+- KoontzyFall
+- Negative
+- Ananke
+- Clouds
+- Colorfalloween
+- LiftOff
+- CFDupp
+- Trip
+- ACM
+- Starfall
+- Recession
+- Gravity
+- Pretzel
+- akvalentine
+- lightsabers
+- HomeSweetHome_the_end
+- Honeycomb
+- nomap
+- Pizza
+- Silo_the_end
+- Breakfast
+- CheeseCF
+- SimplyColorfall

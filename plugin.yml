@@ -5,9 +5,25 @@ version: 0.1
 api-version: 1.13
 website: https://cavetale.com
 main: io.github.feydk.colorfall.ColorfallGame
-depend: [ SQL, Connect ]
+depend: [SQL, Core]
 softdepend: []
+
 commands:
   colorfall:
-    aliases: [ready, item, tp, highscore, hi, stats, quit]
-permissions: {}
+    permission: colorfall.colorfall
+    aliases: [cf, ready, item, tp, highscore, hi, stats]
+    usage: 'idk'
+
+  colorfalladmin:
+    aliases: [cfa]
+    permission: colorfall.admin
+    usage: '/cfa'
+
+permissions:
+  colorfall.colorfall:
+    description: colorfall command
+    default: op
+
+  colorfall.admin:
+    description: cfa command
+    default: op

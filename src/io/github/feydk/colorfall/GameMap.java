@@ -6,7 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import javafx.geometry.Point2D;
+import lombok.Getter;
+import lombok.Value;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -16,6 +17,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
@@ -26,6 +28,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.util.Vector;
 
+@Getter
 public class GameMap
 {
     // The blocks to replace with colors (placeholder blocks).
@@ -59,8 +62,9 @@ public class GameMap
         BlockData blockData;
     }
 
-    public GameMap(int chunkRadius, ColorfallGame game)
+    public GameMap(final int chunkRadius, final ColorfallGame game, final World world)
     {
+        this.world = world;
         this.chunkRadius = chunkRadius;
         this.game = game;
     }
@@ -179,9 +183,9 @@ public class GameMap
         return spawnLocations.get(i);
     }
 
-    public void process(Chunk startingChunk)
+    public void process()
     {
-        world = startingChunk.getWorld();
+        Chunk startingChunk = world.getSpawnLocation().getChunk();
 
         int cx = startingChunk.getX();
         int cz = startingChunk.getZ();
@@ -269,9 +273,16 @@ public class GameMap
             {
                 if(state instanceof Sign)
                     {
-                        org.bukkit.material.Sign signMaterial = (org.bukkit.material.Sign)state.getData();
-                        Sign signBlock = (Sign)state;
-                        Block attachedBlock = state.getBlock().getRelative(signMaterial.getAttachedFace());
+                        Sign signBlock = (Sign) state;
+                        Block attachedBlock;
+                        if (state.getBlockData() instanceof org.bukkit.block.data.type.Sign) {
+                            attachedBlock = state.getBlock().getRelative(BlockFace.DOWN);
+                        } else if (state.getBlockData() instanceof org.bukkit.block.data.type.WallSign) {
+                            org.bukkit.block.data.type.WallSign signBlockData = (org.bukkit.block.data.type.WallSign) state.getBlockData();
+                            attachedBlock = state.getBlock().getRelative(signBlockData.getFacing().getOppositeFace());
+                        } else {
+                            continue;
+                        }
 
                         String firstLine = signBlock.getLine(0).toLowerCase();
 
@@ -613,4 +624,10 @@ public class GameMap
             }
         }
     }
+}
+
+@Value
+class Point2D {
+    public final int x;
+    public final int y;
 }

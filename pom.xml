@@ -13,16 +13,18 @@
   <repositories>
     <!-- Spigot Repo -->
     <repository>
-      <id>spigot-repo</id>
-      <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+      <id>papermc</id>
+      <url>https://papermc.io/repo/repository/maven-public/</url>
     </repository>
   </repositories>
   <dependencies>
-    <!-- Spigot-API -->
+    <!-- Paper API -->
     <dependency>
-      <groupId>org.spigotmc</groupId>
-      <artifactId>spigot-api</artifactId>
-      <version>1.13.1-R0.1-SNAPSHOT</version>
+      <groupId>com.destroystokyo.paper</groupId>
+      <artifactId>paper-api</artifactId>
+      <version>1.16.1-R0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <!-- SQL -->
     <dependency>
@@ -31,15 +33,23 @@
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
-    <!-- Connect -->
+    <!-- Core -->
     <dependency>
-      <groupId>com.winthier.connect</groupId>
-      <artifactId>connect</artifactId>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
       <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Lombok -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.2</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
+    <finalName>${project.name}</finalName>
     <sourceDirectory>src</sourceDirectory>
     <resources>
       <resource>

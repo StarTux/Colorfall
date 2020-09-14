@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.util.Date;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
@@ -17,7 +18,7 @@ public class GamePlayer
     private PlayerType type;
     private String name;
     private boolean isReady;
-    private boolean isAlive;
+    private boolean isAlive = true;
     private long lastDeath;
     private long disconnectedTics;
     private Location spawnLocation;
@@ -54,7 +55,6 @@ public class GamePlayer
     {
         this.game = game;
         this.uuid = uuid;
-        isAlive = true;
     }
 
     public boolean joinedAsSpectator()
@@ -131,10 +131,13 @@ public class GamePlayer
 
     public Location getSpawnLocation()
     {
-        if(spawnLocation == null)
-            spawnLocation = game.getMap().dealSpawnLocation();
+        if(spawnLocation != null)
+            return spawnLocation;
 
-        return spawnLocation;
+        if (game.getMap() != null)
+            return game.getMap().dealSpawnLocation();
+
+        return Bukkit.getWorlds().get(0).getSpawnLocation();
     }
 
     // Set amount of lives. Note: should only be called once when the game starts.
@@ -339,8 +342,6 @@ public class GamePlayer
                 player.teleport(location);
                 game.getLogger().info("Teleported " + player.getName() + " to their spawn location");
             }
-        player.setAllowFlight(true);
-        player.setFlying(true);
         player.setFlySpeed(0);
         player.setWalkSpeed(0);
     }
@@ -350,8 +351,6 @@ public class GamePlayer
         this.immobileLocation = null;
         player.setWalkSpeed(.2f);
         player.setFlySpeed(.1f);
-        player.setFlying(false);
-        player.setAllowFlight(false);
     }
 
     void onTick(Player player) {
@@ -359,8 +358,6 @@ public class GamePlayer
         if (immobileLocation != null) {
             if(!player.getLocation().getWorld().equals(immobileLocation.getWorld()) || player.getLocation().distanceSquared(immobileLocation) > 2.0)
                 {
-                    player.setAllowFlight(true);
-                    player.setFlying(true);
                     player.setFlySpeed(0);
                     player.setWalkSpeed(0);
                     player.teleport(immobileLocation);

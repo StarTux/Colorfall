@@ -65,47 +65,14 @@ enum Color {
     }
 
     Material getDyeMaterial() {
-        switch (this) {
-        case BLACK: return Material.INK_SAC;
-        case BLUE: return Material.LAPIS_LAZULI;
-        case BROWN: return Material.COCOA_BEANS;
-        case CYAN: return Material.CYAN_DYE;
-        case GRAY: return Material.GRAY_DYE;
-        case GREEN: return Material.CACTUS_GREEN;
-        case LIGHT_BLUE: return Material.LIGHT_BLUE_DYE;
-        case LIGHT_GRAY: return Material.LIGHT_GRAY_DYE;
-        case LIME: return Material.LIME_DYE;
-        case MAGENTA: return Material.MAGENTA_DYE;
-        case ORANGE: return Material.ORANGE_DYE;
-        case PINK: return Material.PINK_DYE;
-        case PURPLE: return Material.PURPLE_DYE;
-        case RED: return Material.ROSE_RED;
-        case WHITE: return Material.BONE_MEAL;
-        case YELLOW: return Material.DANDELION_YELLOW;
-        default: return Material.POTATO;
-        }
+        return Material.valueOf(this.name() + "_DYE");
     }
 
     static Color fromDyeMaterial(Material mat) {
-        switch (mat) {
-        case INK_SAC: return Color.BLACK;
-        case LAPIS_LAZULI: return Color.BLUE;
-        case COCOA_BEANS: return Color.BROWN;
-        case CYAN_DYE: return Color.CYAN;
-        case GRAY_DYE: return Color.GRAY;
-        case CACTUS_GREEN: return Color.GREEN;
-        case LIGHT_BLUE_DYE: return Color.LIGHT_BLUE;
-        case LIGHT_GRAY_DYE: return Color.LIGHT_GRAY;
-        case LIME_DYE: return Color.LIME;
-        case MAGENTA_DYE: return Color.MAGENTA;
-        case ORANGE_DYE: return Color.ORANGE;
-        case PINK_DYE: return Color.PINK;
-        case PURPLE_DYE: return Color.PURPLE;
-        case ROSE_RED: return Color.RED;
-        case BONE_MEAL: return Color.WHITE;
-        case DANDELION_YELLOW: return Color.YELLOW;
-        default: return null;
-        }
+        String name = mat.name();
+        if (!name.endsWith("_DYE")) return null;
+        name = name.substring(0, name.length() - 4);
+        return Color.valueOf(name);
     }
 
     ChatColor toChatColor() {
