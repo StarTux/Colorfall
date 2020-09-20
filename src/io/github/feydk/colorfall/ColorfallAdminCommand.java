@@ -30,6 +30,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         rootNode.addChild("map")
             .completableList(ctx -> plugin.getWorldNames())
             .description("Start a map")
+            .arguments("<name>")
             .playerCaller(this::map);
         rootNode.addChild("stop")
             .completableList(ctx -> plugin.getWorldNames())
@@ -74,6 +75,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         }
         plugin.loadWorld(name);
         plugin.setState(ColorfallGame.GameState.WAIT_FOR_PLAYERS);
+        player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
         return true;
     }
 

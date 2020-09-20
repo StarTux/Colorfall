@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import com.winthier.sql.SQLDatabase;
 import io.github.feydk.colorfall.GameMap.ColorBlock;
 import java.io.File;
@@ -23,6 +24,7 @@ import org.bukkit.Instrument;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Note;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
@@ -30,13 +32,18 @@ import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -62,6 +69,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import org.json.simple.JSONValue;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
@@ -104,7 +112,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
     List<String> debugStrings = new ArrayList<String>();
     boolean denyStart = false;
 
-    private boolean didSomeoneJoin;
     private boolean moreThanOnePlayed;
     private GamePlayer winner;
     private int currentRoundIdx;
@@ -118,6 +125,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
     UUID gameUuid = UUID.randomUUID();
     //final Highscore highscore = new Highscore();
     SQLDatabase db;
+    BossBar bossBar;
 
     public ColorfallGame()
     {
@@ -224,10 +232,33 @@ public class ColorfallGame extends JavaPlugin implements Listener
         task.runTaskTimer(this, 1, 1);
         getServer().getPluginManager().registerEvents(this, this);
 
+        bossBar = getServer().createBossBar("Colorfall", BarColor.BLUE, BarStyle.SOLID);
+
         scoreboard = new GameScoreboard();
         for (Player player : getServer().getOnlinePlayers()) {
             scoreboard.addPlayer(player);
+            bossBar.addPlayer(player);
         }
+    }
+
+    void reset() {
+        roundState = null;
+        ticks = 0;
+        stateTicks = 0;
+        roundTicks = 0;
+        winTicks = -1;
+        randomizeCooldown = 0;
+        powerups.clear();
+        rounds.clear();
+        gamePlayers.clear();
+        moreThanOnePlayed = false;
+        winner = null;
+        currentRoundIdx = 0;
+        currentRound = null;
+        currentRoundDuration = 0;
+        currentRoundRandomized = false;
+        currentColor = null;
+        paintedBlocks.clear();
     }
 
     public void loadWorld(String worldName) {
@@ -362,6 +393,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
     {
         cleanUpMap();
         task.cancel();
+        for (Player player : getServer().getOnlinePlayers()) {
+            scoreboard.removePlayer(player);
+            bossBar.removePlayer(player);
+        }
     }
 
     @SuppressWarnings("static-access")
@@ -379,7 +414,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 for(Player player : getServer().getOnlinePlayers())
                     {
                         GamePlayer gp = getGamePlayer(player);
-                        if(gp.isAlive() && !gp.joinedAsSpectator())
+                        if(gp.isAlive() && !gp.isSpectator())
                             {
                                 survivor = gp;
                                 aliveCount += 1;
@@ -474,7 +509,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
         switch(newState)
             {
             case INIT:
-                gamePlayers.clear();
+                reset();
                 break;
             case WAIT_FOR_PLAYERS:
                 scoreboard.setTitle(ChatColor.GREEN + "Waiting");
@@ -602,7 +637,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
                                 gp.setDiedThisRound(false);
 
                                 // Hand out powerups.
-                                List<ItemStack> powerups = round.getDistributedPowerups();
+                                
+                                List<ItemStack> powerups = round.getDistributedPowerups(gp.getLivesLeft());
 
                                 if(powerups.size() > 0)
                                     {
@@ -610,7 +646,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                                             player.getInventory().addItem(stack);
                                     }
 
-                                if(player.getGameMode() == GameMode.SPECTATOR)
+                                if(gp.isPlayer() && player.getGameMode() == GameMode.SPECTATOR)
                                     {
                                         player.teleport(gp.getSpawnLocation());
                                         gp.setPlayer();
@@ -618,8 +654,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
                             }
 
                         // Announce pvp and color.
-                        Color color = Color.fromBlockData(currentColor.blockData);
-                        showTitle(player, (world.getPVP() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + color.toChatColor() + color.niceName);
+                        //Color color = Color.fromBlockData(currentColor.blockData);
+                        //showTitle(player, (world.getPVP() ? ChatColor.DARK_RED + "PVP is on!" : ""), ChatColor.WHITE + "The color of this round is " + color.toChatColor() + color.niceName);
                     }
 
                 break;
@@ -652,18 +688,18 @@ public class ColorfallGame extends JavaPlugin implements Listener
             }
 
         // Item for the new color block.
-        ItemStack stack = new ItemStack(pick.blockData.getMaterial());
+        // ItemStack stack = new ItemStack(pick.blockData.getMaterial());
 
         // Remove all color blocks from player inventories and give them the new one.
-        for(Player player : getServer().getOnlinePlayers())
-            {
-                Inventory inv = player.getInventory();
+        // for(Player player : getServer().getOnlinePlayers())
+        //     {
+        //         Inventory inv = player.getInventory();
 
-                if(currentColor != null)
-                    inv.remove(currentColor.blockData.getMaterial());
+        //         if(currentColor != null)
+        //             inv.remove(currentColor.blockData.getMaterial());
 
-                inv.addItem(stack);
-            }
+        //         inv.addItem(stack);
+        //     }
 
         currentColor = pick;
     }
@@ -716,7 +752,17 @@ public class ColorfallGame extends JavaPlugin implements Listener
                     }
             }
 
+        long totalCount = 0;
+        long readyCount = 0;
+        for (Player player : getServer().getOnlinePlayers()) {
+            GamePlayer gamePlayer = getGamePlayer(player);
+            if (gamePlayer.isSpectator()) continue;
+            totalCount += 1;
+            if (gamePlayer.isReady()) readyCount += 1;
+        }
         long timeLeft = (waitForPlayersDuration * 20) - ticks;
+        bossBar.setTitle(ChatColor.AQUA + "Waiting for players (" + readyCount + "/" + totalCount + ")");
+        bossBar.setProgress(waitForPlayersDuration == 0.0 ? 0.0 : (double) timeLeft / (double) (waitForPlayersDuration * 20));
 
         // Every second, update the sidebar timer.
         if(timeLeft % 20 == 0)
@@ -732,7 +778,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         playerCount++;
                         GamePlayer gp = getGamePlayer(player);
 
-                        if(!gp.isReady() && !gp.joinedAsSpectator())
+                        if(!gp.isReady() && !gp.isSpectator())
                             {
                                 allReady = false;
                                 break;
@@ -768,7 +814,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                     {
                         if(seconds == 0)
                             {
-                                showTitle(player, ChatColor.GREEN + "Go!", "");
+                                showTitle(player, ChatColor.GREEN + "Go!", "", 0, 20, 0);
                                 player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, SoundCategory.MASTER, 0.2f, 1f);
                             }
                         else if(seconds == countdownToStartDuration)
@@ -831,28 +877,32 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 scoreboard.refreshTitle(roundTimeLeft);
                 scoreboard.updatePlayers();
 
-                String actionMsg = (world.getPVP() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
+                //String actionMsg = (world.getPVP() ? ChatColor.DARK_RED + "PVP is on " + ChatColor.WHITE + "- " : "");
 
                 // If it's night time or if we're in the end, use white color.
-                if(world.getTime() >= 13000 || world.getEnvironment() == World.Environment.THE_END)
-                    actionMsg += ChatColor.WHITE;
-                else
-                    actionMsg += ChatColor.BLACK;
+                // if(world.getTime() >= 13000 || world.getEnvironment() == World.Environment.THE_END)
+                //     actionMsg += ChatColor.WHITE;
+                // else
+                //     actionMsg += ChatColor.BLACK;
 
                 Color color = Color.fromBlockData(currentColor.blockData);
-                actionMsg += "The color of this round is " + color.toChatColor() + color.niceName;
+                //actionMsg += "The color of this round is " + color.toChatColor() + color.niceName;
+
+                bossBar.setTitle("" + color.toChatColor() + ChatColor.BOLD + color.niceName
+                                 + (world.getPVP() ? ChatColor.DARK_RED + " PVP" : ""));
+                bossBar.setProgress(currentRoundDuration == 0.0 ? 0.0 : (double) roundTimeLeft / (double) currentRoundDuration);
 
                 long seconds = roundTimeLeft / 20;
+                if (seconds <= 3) disallowRandomize = true;
 
                 for(Player player : getServer().getOnlinePlayers())
                     {
-                        sendActionBar(player, actionMsg);
+                        //sendActionBar(player, actionMsg);
 
                         // Countdown 3 seconds before round ends.
                         if(seconds > 0 && seconds <= 3)
                             {
-                                disallowRandomize = true;
-                                showTitle(player, "", "" + ChatColor.RED + seconds);
+                                showTitle(player, "", "" + ChatColor.RED + seconds, 0, 20, 0);
                                 player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)seconds));
 
                                 if(seconds <= 2)
@@ -861,12 +911,13 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         else if(seconds == 0)
                             {
                                 // Reset title so we don't have the '1' from the countdown hanging too long.
-                                showTitle(player, "", "");
+                                //showTitle(player, "", "");
                             }
                     }
 
                 // Show/refresh particle effect above the blocks.
-                map.animateBlocks(currentColor);
+                //map.animateBlocks(currentColor);
+                map.highlightBlocks(currentColor);
 
                 // Handle randomize events.
                 if(round.getRandomize() && !currentRoundRandomized)
@@ -892,6 +943,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                 if(roundTimeLeft <= 0)
                     {
+                        map.clearHighlightBlocks();
                         newState = RoundState.REMOVING_BLOCKS;
                     }
             }
@@ -918,7 +970,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                             }
                         else
                             {
-                                showTitle(player, "" + seconds, ChatColor.GREEN + "Round " + (currentRoundIdx + 1));
+                                showTitle(player, "" + seconds, ChatColor.GREEN + "Round " + (currentRoundIdx + 1), 0, 20, 0);
                                 player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int)seconds));
                             }
                     }
@@ -996,76 +1048,74 @@ public class ColorfallGame extends JavaPlugin implements Listener
     }
 
     // Called once, when the player joins for the first time.
-    public void playerJoinedForTheFirstTime(final Player player)
-    {
-        didSomeoneJoin = true;
+    // public void playerJoinedForTheFirstTime(final Player player)
+    // {
+    //     GamePlayer gp = getGamePlayer(player);
 
-        GamePlayer gp = getGamePlayer(player);
+    //     gp.hasJoinedBefore = true;
+    //     gp.setName(player.getName());
+    //     gp.setStartTime(new Date());
+    //     gp.updateStatsName();
 
-        gp.hasJoinedBefore = true;
-        gp.setName(player.getName());
-        gp.setStartTime(new Date());
-        gp.updateStatsName();
+    //     scoreboard.addPlayer(player);
 
-        scoreboard.addPlayer(player);
+    //     if(debug)
+    //         {
+    //             if(debugStrings.size() > 0)
+    //                 {
+    //                     send(player, ChatColor.DARK_RED + " === DEBUG INFO ===");
 
-        if(debug)
-            {
-                if(debugStrings.size() > 0)
-                    {
-                        send(player, ChatColor.DARK_RED + " === DEBUG INFO ===");
+    //                     for(String s : debugStrings)
+    //                         {
+    //                             send(player, " " + ChatColor.RED + s);
+    //                         }
+    //                 }
+    //         }
 
-                        for(String s : debugStrings)
-                            {
-                                send(player, " " + ChatColor.RED + s);
-                            }
-                    }
-            }
+    //     if(gp.joinedAsSpectator())
+    //         return;
 
-        if(gp.joinedAsSpectator())
-            return;
+    //     switch(state)
+    //         {
+    //         case INIT:
+    //         case WAIT_FOR_PLAYERS:
+    //         case COUNTDOWN_TO_START:
+    //             gp.setPlayer();
+    //             scoreboard.setPlayerScore(player, 0);
+    //             break;
+    //         default:
+    //             if(gp.isPlayer())
+    //                 {
+    //                     scoreboard.setPlayerScore(player, 0);
+    //                 }
 
-        switch(state)
-            {
-            case INIT:
-            case WAIT_FOR_PLAYERS:
-            case COUNTDOWN_TO_START:
-                gp.setPlayer();
-                scoreboard.setPlayerScore(player, 0);
-                break;
-            default:
-                if(gp.isPlayer())
-                    {
-                        scoreboard.setPlayerScore(player, 0);
-                    }
+    //             gp.setSpectator();
+    //         }
 
-                gp.setSpectator();
-            }
+    //     if(joinRandomStat == null)
+    //         {
+    //             joinRandomStat = getStatsJson(new Random(System.currentTimeMillis()).nextInt(8));
+    //         }
 
-        if(joinRandomStat == null)
-            {
-                joinRandomStat = getStatsJson(new Random(System.currentTimeMillis()).nextInt(8));
-            }
+    //     new BukkitRunnable()
+    //     {
+    //         @Override public void run()
+    //         {
+    //             send(player, " ");
 
-        new BukkitRunnable()
-        {
-            @Override public void run()
-            {
-                send(player, " ");
+    //             if (map != null) {
+    //                 String credits = map.getCredits();
 
-                if (map != null) {
-                    String credits = map.getCredits();
+    //                 if(!credits.isEmpty())
+    //                     send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
 
-                    if(!credits.isEmpty())
-                        send(player, ChatColor.GOLD + " Welcome to Colorfall!" + ChatColor.WHITE + " Map name: " + ChatColor.AQUA + mapID + ChatColor.WHITE + " - Made by: " + ChatColor.AQUA + credits);
+    //                 send(player, " ");
 
-                    send(player, " ");
-
-                    sendJsonMessage(player, joinRandomStat);
-                }
-            }
-        }.runTaskLater(this, 20 * 3);
-    }
+    //                 sendJsonMessage(player, joinRandomStat);
+    //             }
+    //         }
+    //     }.runTaskLater(this, 20 * 3);
+    // }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     Object button(String chat, String tooltip, String command)
@@ -1092,10 +1142,11 @@ public class ColorfallGame extends JavaPlugin implements Listener
     public void onPlayerJoin(PlayerJoinEvent event)
     {
         Player player = event.getPlayer();
+        bossBar.addPlayer(player);
         GamePlayer gp = getGamePlayer(player);
-        if (!gp.hasJoinedBefore) {
-            playerJoinedForTheFirstTime(player);
-        }
+        // if (!gp.hasJoinedBefore) {
+        //     playerJoinedForTheFirstTime(player);
+        // }
 
         if(gp.joinedAsSpectator())
             {
@@ -1115,6 +1166,11 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
         switch(state)
             {
+            case STARTED:
+                if (!gp.isPlayer()) {
+                    gp.setSpectator();
+                }
+                break;
             case INIT:
             case WAIT_FOR_PLAYERS:
             case COUNTDOWN_TO_START:
@@ -1123,8 +1179,8 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 break;
             default:
                 // Join later and we make sure you are in the right state.
-                gp.makeMobile(player);
-                gp.setPlayer();
+                // gp.makeMobile(player);
+                // gp.setPlayer();
             }
     }
 
@@ -1177,11 +1233,16 @@ public class ColorfallGame extends JavaPlugin implements Listener
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event)
     {
+        if (event.getEntity() instanceof ArmorStand) {
+            event.setCancelled(true);
+            return;
+        }
+
         if(!(event.getEntity() instanceof Player))
             return;
 
         Player player = (Player)event.getEntity();
-        GamePlayer gp = getGamePlayer(player.getUniqueId());
+        GamePlayer gp = getGamePlayer(player);
 
         if(gp.joinedAsSpectator())
             {
@@ -1207,8 +1268,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                 if(roundState == RoundState.RUNNING || roundState == RoundState.REMOVING_BLOCKS || roundState == RoundState.RESTORING_BLOCKS)
                     {
-                        player.setGameMode(GameMode.SPECTATOR);
+                        player.setVelocity(new Vector().zero());
                         player.teleport(gp.getSpawnLocation());
+                        player.setHealth(20.0);
+                        player.setGameMode(GameMode.SPECTATOR);
                         //gp.makeImmobile(player, gp.getSpawnLocation());
                     }
                 else
@@ -1228,23 +1291,23 @@ public class ColorfallGame extends JavaPlugin implements Listener
     private void giveStartingItems(Player player)
     {
         // Give feather.
-        ItemStack feather = new ItemStack(Material.FEATHER);
-        ItemMeta meta = feather.getItemMeta();
-        meta.setDisplayName("Color checker");
+        // ItemStack feather = new ItemStack(Material.FEATHER);
+        // ItemMeta meta = feather.getItemMeta();
+        // meta.setDisplayName("Color checker");
 
-        List<String> lore = new ArrayList<String>();
-        lore.add(ChatColor.DARK_AQUA + "Use this feather on a");
-        lore.add(ChatColor.DARK_AQUA + "colored block to check");
-        lore.add(ChatColor.DARK_AQUA + "the color of the block.");
+        // List<String> lore = new ArrayList<String>();
+        // lore.add(ChatColor.DARK_AQUA + "Use this feather on a");
+        // lore.add(ChatColor.DARK_AQUA + "colored block to check");
+        // lore.add(ChatColor.DARK_AQUA + "the color of the block.");
 
-        meta.setLore(lore);
+        // meta.setLore(lore);
 
-        feather.setItemMeta(meta);
+        // feather.setItemMeta(meta);
 
-        player.getInventory().setItem(1, feather);
+        // player.getInventory().setItem(1, feather);
 
         // Give one dye.
-        player.getInventory().setItem(2, map.getDye());
+        player.getInventory().addItem(map.getDye());
     }
 
     @Override
@@ -1260,6 +1323,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 scoreboard.setPlayerScore(player, 1);
                 player.teleport(gp.getSpawnLocation());
                 send(player, ChatColor.GREEN + " Marked as ready");
+                getServer().dispatchCommand(getServer().getConsoleSender(), "ml add " + player.getName());
             }
         else if(command.equalsIgnoreCase("item") && args.length == 1 && player.isOp())
             {
@@ -1379,6 +1443,12 @@ public class ColorfallGame extends JavaPlugin implements Listener
     public void onPlayerInteract(PlayerInteractEvent event)
     {
         if (event.getHand() != EquipmentSlot.HAND) return;
+        switch (event.getAction()) {
+        case RIGHT_CLICK_BLOCK:
+        case RIGHT_CLICK_AIR:
+            break;
+        default: return;
+        }
         final Player p = event.getPlayer();
         ItemStack hand = p.getInventory().getItemInMainHand();
         if (hand == null || hand.getType() == Material.AIR) return;
@@ -1526,26 +1596,38 @@ public class ColorfallGame extends JavaPlugin implements Listener
             }
     }
 
-    public GamePlayer getGamePlayer(UUID uuid)
-    {
-        GamePlayer result = gamePlayers.get(uuid);
-        if (result == null) {
-            result = new GamePlayer(this, uuid);
-            gamePlayers.put(uuid, result);
-        }
-        return result;
-    }
-
     private GamePlayer getGamePlayer(Player player)
     {
-        GamePlayer gp = getGamePlayer(player.getUniqueId());
+        GamePlayer gp = gamePlayers.computeIfAbsent(player.getUniqueId(), u -> new GamePlayer(this, u));
         gp.setName(player.getName());
+        if (player.getName().equals("Cavetale")) {
+            gp.setSpectator();
+        }
         return gp;
     }
 
     @EventHandler
     public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event) {
         event.setSpawnLocation(getSpawnLocation(event.getPlayer()));
+    }
+
+    @EventHandler
+    public void onProjectileCollide(ProjectileCollideEvent event) {
+        Projectile proj = event.getEntity();
+        if (!(proj instanceof Snowball)) return;
+        Entity target = event.getCollidedWith();
+        if (!(target instanceof Player)) return;
+        Player victim = (Player) target;
+        event.setCancelled(true);
+        if (roundState != RoundState.RUNNING) return;
+        Vector velo = proj.getVelocity().normalize().setY(0.25).normalize();
+        victim.setVelocity(velo.multiply(3.0));
+        victim.getWorld().spawnParticle(Particle.SNOWBALL, proj.getLocation(), 48, 0.2, 0.2, 0.2, 0.0);
+        victim.getWorld().playSound(proj.getLocation(), Sound.BLOCK_SNOW_BREAK, SoundCategory.MASTER, 2.0f, 1.0f);
+        if (proj.getShooter() instanceof Player) {
+            Player launcher = (Player) proj.getShooter();
+            launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
+        }
     }
 
     public Location getSpawnLocation(Player player)
@@ -1898,6 +1980,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
         player.sendTitle(format(title), format(subtitle));
     }
 
+    void showTitle(Player player, String title, String subtitle, int a, int b, int c) {
+        player.sendTitle(format(title), format(subtitle), a, b, c);
+    }
+
     void announce(String msg, Object... args) {
         for (Player player: getServer().getOnlinePlayers()) {
             send(player, msg, args);
@@ -1913,6 +1999,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
     void cleanUpMap() {
         if (map == null) return;
+        map.clearHighlightBlocks();
         for (Player player : map.getWorld().getPlayers()) {
             player.teleport(getServer().getWorlds().get(0).getSpawnLocation());
         }

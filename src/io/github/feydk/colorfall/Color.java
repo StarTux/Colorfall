@@ -1,10 +1,12 @@
 package io.github.feydk.colorfall;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-enum Color {
+public enum Color {
     BLACK,
     BLUE,
     BROWN,
@@ -22,13 +24,12 @@ enum Color {
     WHITE,
     YELLOW;
 
-    final String niceName;
+    public final String niceName;
 
     Color() {
-        String[] toks = name().split("_");
-        StringBuilder sb = new StringBuilder(toks[0].substring(0, 1)).append(toks[0].substring(1).toUpperCase());
-        for (int i = 1; i < toks.length; i += 1) sb.append(" ").append(toks[i].substring(0, 1)).append(toks[i].substring(1).toLowerCase());
-        this.niceName = sb.toString();
+        niceName = Stream.of(name().split("_"))
+            .map(s -> s.substring(0, 1) + s.substring(1).toLowerCase())
+            .collect(Collectors.joining(" "));
     }
 
     org.bukkit.Color toBukkitColor() {

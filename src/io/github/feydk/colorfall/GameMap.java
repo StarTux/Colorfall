@@ -2,8 +2,10 @@ package io.github.feydk.colorfall;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import lombok.Getter;
@@ -21,6 +23,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.ItemStack;
@@ -56,6 +59,7 @@ public class GameMap
     // Stuff used for boundaries.
     private List<Location> boundaries = new ArrayList<Location>();
     private double minX, minZ, minY, maxX, maxZ, maxY;
+    private Map<Block, ArmorStand> highlightEntities = new HashMap<>();
 
     class ColorBlock
     {
@@ -138,6 +142,36 @@ public class GameMap
                         // System.out.println(cmd);
                         // Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), cmd);
                     }
+            }
+    }
+
+    public void clearHighlightBlocks() {
+        for (ArmorStand f : highlightEntities.values()) f.remove();
+        highlightEntities.clear();
+    }
+
+    public void highlightBlocks(ColorBlock currentColor) {
+        for(Block b : replacedBlocks)
+            {
+                ArmorStand armorStand = highlightEntities.get(b);
+                if(b.getType() == Material.AIR || !b.getBlockData().equals(currentColor.blockData)) {
+                    if (armorStand != null) {
+                        armorStand.remove();
+                        highlightEntities.remove(b);
+                    }
+                    continue;
+                }
+                if(armorStand != null && armorStand.isValid()) continue;
+                armorStand = world.spawn(b.getLocation().add(0.5, -1.25, 0.5), ArmorStand.class, e -> {
+                        e.setGlowing(true);
+                        e.setGravity(false);
+                        e.setCanMove(false);
+                        e.setCanTick(false);
+                        e.setMarker(true);
+                        e.setVisible(false);
+                        e.setHelmet(new ItemStack(currentColor.blockData.getMaterial()));
+                    });
+                highlightEntities.put(b, armorStand);
             }
     }
 

@@ -365,4 +365,8 @@ public class GamePlayer
                 }
         }
     }
+
+    public int getLivesLeft() {
+        return livesLeft;
+    }
 }

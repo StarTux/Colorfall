@@ -103,7 +103,7 @@ public class Round
         return r;
     }
 
-    public List<ItemStack> getDistributedPowerups()
+    public List<ItemStack> getDistributedPowerups(int lives)
     {
         List<ItemStack> list = new ArrayList<ItemStack>();
 
@@ -112,9 +112,10 @@ public class Round
 
         for(Entry<ItemStack, Double> entry : powerups.entrySet())
             {
+                double chance = entry.getValue() * 3 / (double) (lives > 0 ? lives : 1);
                 double number = Math.random() * 100;
 
-                if(number - entry.getValue() <= 0)
+                if(number < chance)
                     {
                         ItemStack stack = entry.getKey();
 
