@@ -10,10 +10,8 @@ import java.util.Random;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Value;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
-import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -32,8 +30,7 @@ import org.bukkit.metadata.MetadataValue;
 import org.bukkit.util.Vector;
 
 @Getter
-public class GameMap
-{
+public class GameMap {
     // The blocks to replace with colors (placeholder blocks).
     private Set<ColorBlock> coloredBlocks = new HashSet<ColorBlock>();
     // The list of possible colors for the map.
@@ -278,11 +275,10 @@ public class GameMap
             }
 
         // Then crawl the map again, this time finding all the blocks that needs to be replaced with color blocks.
-        for(Point2D point : processedChunks)
-            {
-                //debug("chunk " + point.getX() + ", " + point.getY());
-                findBlocksToBeReplaced((int)point.getX(), (int)point.getY());
-            }
+        for (Point2D point : processedChunks) {
+            //debug("chunk " + point.getX() + ", " + point.getY());
+            findBlocksToBeReplaced((int)point.getX(), (int)point.getY());
+        }
 
         // Finally replace the blocks we found in the step above.
         // The reason I don't do all this in one step is that I want to guarantee a certain "quality" of the block replacement across all chunks.

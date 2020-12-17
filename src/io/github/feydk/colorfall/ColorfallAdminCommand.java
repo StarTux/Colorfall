@@ -19,7 +19,7 @@ import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor
 public final class ColorfallAdminCommand implements TabExecutor {
-    private final ColorfallGame plugin;
+    private final ColorfallPlugin plugin;
     private CommandNode rootNode;
 
     public void enable() {
@@ -77,18 +77,18 @@ public final class ColorfallAdminCommand implements TabExecutor {
                 throw new CommandWarn("Unknown map: " + name);
             }
         }
-        if (plugin.getState() != ColorfallGame.GameState.INIT) {
+        if (plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        plugin.loadWorld(name);
-        plugin.setState(ColorfallGame.GameState.WAIT_FOR_PLAYERS);
+        plugin.getGame().loadMap(name);
+        plugin.getGame().setState(GameState.WAIT_FOR_PLAYERS);
         player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
         return true;
     }
 
     boolean stop(Player player, String[] args) {
-        plugin.setState(ColorfallGame.GameState.INIT);
-        plugin.cleanUpMap();
+        plugin.getGame().setState(GameState.INIT);
+        plugin.getGame().cleanUpMap();
         player.sendMessage("Cleaned up.");
         return true;
     }
