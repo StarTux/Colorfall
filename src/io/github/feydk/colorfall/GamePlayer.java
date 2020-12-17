@@ -24,7 +24,6 @@ public class GamePlayer
     private Location spawnLocation;
     private boolean statsRecorded;
     private boolean didPlay = false;
-    private boolean joinedAsSpectator = false;
     private boolean diedThisRound = false;
 
     // Player stats and highscore stuff.
@@ -55,16 +54,6 @@ public class GamePlayer
     {
         this.game = game;
         this.uuid = uuid;
-    }
-
-    public boolean joinedAsSpectator()
-    {
-        return this.joinedAsSpectator;
-    }
-
-    public void setJoinedAsSpectator(boolean didhe)
-    {
-        joinedAsSpectator = didhe;
     }
 
     // Is player a player (still participating in the game)?

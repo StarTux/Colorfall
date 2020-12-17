@@ -475,7 +475,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                 Player player = getServer().getPlayer(gp.uuid);
                 if (player != null) gp.onTick(player);
 
-                if(player == null && !gp.joinedAsSpectator())
+                if(player == null)
                     {
                         // Kick players who disconnect too long.
                         long discTicks = gp.getDisconnectedTicks();
@@ -526,7 +526,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                                 gp.setSpectator();
                             }
 
-                        if(gp.isPlayer() && !gp.joinedAsSpectator())
+                        if(gp.isPlayer())
                             {
                                 gp.setLives(lives);
                             }
@@ -538,6 +538,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                         player.getInventory().clear();
                         gp.setPlayer();
                     }
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
                 }
                 break;
             case STARTED:
@@ -549,13 +550,10 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                         GamePlayer gp = getGamePlayer(player);
 
-                        if(!gp.joinedAsSpectator())
-                            {
-                                gp.makeMobile(player);
-                                gp.setStartTime(new Date());
-                                player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
-                                count++;
-                            }
+                        gp.makeMobile(player);
+                        gp.setStartTime(new Date());
+                        player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
+                        count++;
                     }
 
                 if(count > 1)
@@ -570,11 +568,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                                 for(Player player : getServer().getOnlinePlayers())
                                     {
                                         GamePlayer gp = getGamePlayer(player);
-
-                                        if(!gp.joinedAsSpectator())
-                                            {
-                                                gp.setLives(1);
-                                            }
+                                        gp.setLives(1);
                                     }
                             }
                     }
@@ -739,7 +733,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
                     {
                         GamePlayer gp = getGamePlayer(player);
 
-                        if(!gp.isReady() && !gp.joinedAsSpectator())
+                        if(!gp.isReady())
                             {
                                 List<Object> list = new ArrayList<>();
                                 list.add(format(" &fClick here when ready: "));
@@ -997,6 +991,9 @@ public class ColorfallGame extends JavaPlugin implements Listener
     {
         if(ticks == 0)
             {
+                if (winner != null) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Technicolor");
+                }
                 for(Player player : getServer().getOnlinePlayers())
                     {
                         if(winner != null)
@@ -1010,7 +1007,7 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
                         List<Object> list = new ArrayList<>();
                         list.add(" Click here to leave the game: ");
-                        //                        list.add(button("&c[Quit]", "&cLeave this game", "/quit"));
+                        list.add(button("&c[Spawn]", "&cLeave this game", "/spawn"));
                         sendRaw(player, list);
                     }
             }
@@ -1071,9 +1068,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
     //                         }
     //                 }
     //         }
-
-    //     if(gp.joinedAsSpectator())
-    //         return;
 
     //     switch(state)
     //         {
@@ -1147,12 +1141,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
         // if (!gp.hasJoinedBefore) {
         //     playerJoinedForTheFirstTime(player);
         // }
-
-        if(gp.joinedAsSpectator())
-            {
-                gp.setSpectator();
-                return;
-            }
 
         gp.setDisconnectedTicks(0);
 
@@ -1243,12 +1231,6 @@ public class ColorfallGame extends JavaPlugin implements Listener
 
         Player player = (Player)event.getEntity();
         GamePlayer gp = getGamePlayer(player);
-
-        if(gp.joinedAsSpectator())
-            {
-                event.setCancelled(true);
-                return;
-            }
 
         // Ok, this isn't pretty. But..
         // It seems that when a player is teleported, any fall damage he is due to take is inflicted immediately. Even when falling into the void.

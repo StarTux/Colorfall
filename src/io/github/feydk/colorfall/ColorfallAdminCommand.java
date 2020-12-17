@@ -4,6 +4,8 @@ import com.cavetale.core.command.CommandContext;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -67,8 +69,13 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (args.length != 1) return false;
         String name = args[0];
         List<String> names = plugin.getWorldNames();
-        if (!names.contains(name)) {
-            throw new CommandWarn("Unknown map: " + name);
+        if (name.equals("random")) {
+            Random random = ThreadLocalRandom.current();
+            name = names.get(random.nextInt(names.size()));
+        } else {
+            if (!names.contains(name)) {
+                throw new CommandWarn("Unknown map: " + name);
+            }
         }
         if (plugin.getState() != ColorfallGame.GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
