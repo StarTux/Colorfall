@@ -10,7 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 @RequiredArgsConstructor
-public class Round {
+public final class Round {
     private final ColorfallPlugin plugin;
     private long durationTicks;
     private boolean pvp;
@@ -52,28 +52,23 @@ public class Round {
         return collision;
     }
 
-    public boolean getRandomize()
-    {
+    public boolean getRandomize() {
         return randomize;
     }
 
-    public void setPvpChance(double chance)
-    {
+    public void setPvpChance(double chance) {
         pvpChance = chance;
     }
 
-    public void setRandomizeChance(double chance)
-    {
+    public void setRandomizeChance(double chance) {
         randomizeChance = chance;
     }
 
-    public double getPvpChance()
-    {
+    public double getPvpChance() {
         return pvpChance;
     }
 
-    public double getRandomizeChance()
-    {
+    public double getRandomizeChance() {
         return randomizeChance;
     }
 
@@ -95,10 +90,10 @@ public class Round {
         for (Entry<ItemStack, Double> entry : powerups.entrySet()) {
             double chance = entry.getValue() * 3 / (double) (lives > 0 ? lives : 1);
             double number = Math.random() * 100;
-            if(number < chance) {
+            if (number < chance) {
                 ItemStack stack = entry.getKey();
                 // Special case. Don't give an ink sack, but a random dye of one of the colors in the pool.
-                if(stack.getType() == Material.INK_SAC) {
+                if (stack.getType() == Material.INK_SAC) {
                     list.add(plugin.getGame().getGameMap().getDye());
                 } else {
                     list.add(stack);

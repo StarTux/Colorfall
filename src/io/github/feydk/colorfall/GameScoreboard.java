@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import io.github.feydk.colorfall.util.Msg;;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
@@ -8,113 +9,93 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.scoreboard.Team.Option;
 import org.bukkit.scoreboard.Team.OptionStatus;
+import org.bukkit.scoreboard.Team;
 
-public class GameScoreboard
-{
+public final class GameScoreboard {
     private Objective objective = null;
     private Scoreboard board = null;
     private Team team = null;
 
     private String title;
 
-    public GameScoreboard()
-    {
+    public GameScoreboard() {
         init();
     }
 
     // Create scoreboard and objective. Set scoreboard to display in sidebar.
-    public void init()
-    {
+    public void init() {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         board = manager.getNewScoreboard();
-
-        if(board.getObjective("Timer") == null)
+        if (board.getObjective("Timer") == null) {
             objective = board.registerNewObjective("Timer", "timer");
-        else
+        } else {
             objective = board.getObjective("Timer");
-
+        }
         team = board.registerNewTeam("All");
-
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
     }
 
-    public void setCollision(boolean collision)
-    {
-        if(collision)
+    public void setCollision(boolean collision) {
+        if (collision) {
             team.setOption(Option.COLLISION_RULE, OptionStatus.ALWAYS);
-        else
+        } else {
             team.setOption(Option.COLLISION_RULE, OptionStatus.NEVER);
+        }
     }
 
     // Add a player to the scoreboard.
-    public void addPlayer(Player player)
-    {
+    public void addPlayer(Player player) {
         player.setScoreboard(board);
         team.addPlayer(player);
     }
 
     // Refresh the scoreboard title.
-    public void refreshTitle()
-    {
-        String title = this.title;
-
+    public void refreshTitle() {
         objective.setDisplayName(title);
     }
 
     // Refresh the scoreboard title with a timer (which is an amount of seconds).
-    public void refreshTitle(long ticks)
-    {
-        String title = this.title;
-
+    public void refreshTitle(long ticks) {
         title += " " + getFormattedTime(ticks);
-
         objective.setDisplayName(title);
     }
 
     // When a player is eliminated, make his name dark red in the scoreboard.
-    public void setPlayerEliminated(Player player)
-    {
+    public void setPlayerEliminated(Player player) {
         board.resetScores(player);
-        objective.getScore(ColorfallGame.format("&4%s", player.getName())).setScore(0);
+        objective.getScore(Msg.format("&4%s", player.getName())).setScore(0);
     }
 
-    public void removePlayer(Player player)
-    {
+    public void removePlayer(Player player) {
         board.resetScores(player);
     }
 
-    public void updatePlayers()
-    {
-        for(OfflinePlayer player : board.getPlayers())
-            {
-                if(!player.isOnline())
-                    board.resetScores(player);
+    public void updatePlayers() {
+        for (OfflinePlayer player : board.getPlayers()) {
+            if (!player.isOnline()) {
+                board.resetScores(player);
             }
+        }
     }
 
     // Format seconds into mm:ss.
-    private String getFormattedTime(long ticks)
-    {
+    private String getFormattedTime(long ticks) {
         long timer = ticks / 20;
         long minutes = timer / 60;
         long seconds = timer - (minutes * 60);
-
         return ChatColor.WHITE + String.format("%02d", minutes) + ChatColor.GRAY + ":" + ChatColor.WHITE + String.format("%02d", seconds);
     }
 
     // Set the title of the scoreboard.
-    public void setTitle(String title)
-    {
+    public void setTitle(String title) {
         this.title = title;
         refreshTitle();
     }
 
     // Set player score.
-    public void setPlayerScore(Player player, int score)
-    {
+    public void setPlayerScore(Player player, int score) {
         objective.getScore(player).setScore(score);
     }
 }

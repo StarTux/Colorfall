@@ -41,6 +41,7 @@ public final class ColorfallPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         new ColorfallAdminCommand(this).enable();
+        new ColorfallCommand(this).enable();
         db = new SQLDatabase(this);
         reloadConfig();
         saveDefaultConfig();
@@ -49,33 +50,33 @@ public final class ColorfallPlugin extends JavaPlugin {
         loadConf();
         // Retiring the config value for now.
         System.out.println("Setting up Colorfall player stats");
-        final String sql =
-            "CREATE TABLE IF NOT EXISTS `colorfall_playerstats` (" +
-            " `id` INT(11) NOT NULL AUTO_INCREMENT," +
-            " `game_uuid` VARCHAR(40) NOT NULL," +
-            " `player_uuid` VARCHAR(40) NOT NULL," +
-            " `player_name` VARCHAR(16) NOT NULL," +
-            " `start_time` DATETIME NOT NULL," +
-            " `end_time` DATETIME NOT NULL," +
-            " `rounds_played` INT(11) NOT NULL," +
-            " `rounds_survived` INT(11) NOT NULL," +
-            " `deaths` INT(11) NOT NULL," +
-            " `lives_left` INT(11) NOT NULL," +
-            " `superior_win` INT(11) NOT NULL," +
-            " `dyes_used` INT(11) NOT NULL," +
-            " `randomizers_used` INT(11) NOT NULL," +
-            " `clocks_used` INT(11) NOT NULL," +
-            " `enderpearls_used` INT(11) NOT NULL," +
-            " `snowballs_used` INT(11) NOT NULL," +
-            " `snowballs_hit` INT(11) NOT NULL," +
-            " `winner` INT(11) NOT NULL," +
-            " `sp_game` BOOLEAN NOT NULL," +
-            " `map_id` VARCHAR(40) NULL, " +
-            " PRIMARY KEY (`id`)" +
-            ")";
+        final String sql = ""
+            + "CREATE TABLE IF NOT EXISTS `colorfall_playerstats` ("
+            + " `id` INT(11) NOT NULL AUTO_INCREMENT,"
+            + " `game_uuid` VARCHAR(40) NOT NULL,"
+            + " `player_uuid` VARCHAR(40) NOT NULL,"
+            + " `player_name` VARCHAR(16) NOT NULL,"
+            + " `start_time` DATETIME NOT NULL,"
+            + " `end_time` DATETIME NOT NULL,"
+            + " `rounds_played` INT(11) NOT NULL,"
+            + " `rounds_survived` INT(11) NOT NULL,"
+            + " `deaths` INT(11) NOT NULL,"
+            + " `lives_left` INT(11) NOT NULL,"
+            + " `superior_win` INT(11) NOT NULL,"
+            + " `dyes_used` INT(11) NOT NULL,"
+            + " `randomizers_used` INT(11) NOT NULL,"
+            + " `clocks_used` INT(11) NOT NULL,"
+            + " `enderpearls_used` INT(11) NOT NULL,"
+            + " `snowballs_used` INT(11) NOT NULL,"
+            + " `snowballs_hit` INT(11) NOT NULL,"
+            + " `winner` INT(11) NOT NULL,"
+            + " `sp_game` BOOLEAN NOT NULL,"
+            + " `map_id` VARCHAR(40) NULL, "
+            + " PRIMARY KEY (`id`)"
+            + ")";
         try {
             db.executeUpdate(sql);
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         System.out.println("Done setting up Colorfall player stats");
@@ -86,17 +87,25 @@ public final class ColorfallPlugin extends JavaPlugin {
         game = new ColorfallGame(this);
         game.enable();
         for (Player player : getServer().getOnlinePlayers()) {
-            scoreboard.addPlayer(player);
-            bossBar.addPlayer(player);
+            enter(player);
         }
     }
 
     @Override
     public void onDisable() {
         for (Player player : getServer().getOnlinePlayers()) {
-            scoreboard.removePlayer(player);
-            bossBar.removePlayer(player);
+            exit(player);
         }
+    }
+
+    public void enter(Player player) {
+        scoreboard.addPlayer(player);
+        bossBar.addPlayer(player);
+    }
+
+    public void exit(Player player) {
+        scoreboard.removePlayer(player);
+        bossBar.removePlayer(player);
     }
 
     void loadConf() {

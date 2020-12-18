@@ -1,23 +1,34 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project>
   <modelVersion>4.0.0</modelVersion>
+
   <groupId>io.github.feydk.colorfall</groupId>
   <artifactId>colorfall</artifactId>
-  <packaging>jar</packaging>
   <version>0.1-SNAPSHOT</version>
+
   <name>Colorfall</name>
+  <packaging>jar</packaging>
   <url>https://cavetale.com</url>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <repositories>
+
     <!-- Spigot Repo -->
     <repository>
       <id>papermc</id>
       <url>https://papermc.io/repo/repository/maven-public/</url>
     </repository>
+
+    <!-- Cavetale Repo -->
+    <repository>
+      <id>cavetale</id>
+      <url>https://cavetale.com/jenkins/plugin/repository/everything/</url>
+    </repository>
+
   </repositories>
   <dependencies>
+
     <!-- Paper API -->
     <dependency>
       <groupId>com.destroystokyo.paper</groupId>
@@ -26,6 +37,7 @@
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
+
     <!-- SQL -->
     <dependency>
       <groupId>com.winthier.sql</groupId>
@@ -33,6 +45,7 @@
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- Core -->
     <dependency>
       <groupId>com.cavetale.core</groupId>
@@ -40,6 +53,7 @@
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- Lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -47,19 +61,20 @@
       <version>1.18.16</version>
       <scope>provided</scope>
     </dependency>
+
   </dependencies>
   <build>
     <finalName>${project.name}</finalName>
     <sourceDirectory>src</sourceDirectory>
     <resources>
       <resource>
-	<directory></directory>
-	<includes>
-	  <include>plugin.yml</include>
-	  <include>config.yml</include>
-	  <include>powerups.yml</include>
-	  <include>rounds.yml</include>
-	</includes>
+        <directory></directory>
+        <includes>
+          <include>plugin.yml</include>
+          <include>config.yml</include>
+          <include>powerups.yml</include>
+          <include>rounds.yml</include>
+        </includes>
       </resource>
     </resources>
     <plugins>

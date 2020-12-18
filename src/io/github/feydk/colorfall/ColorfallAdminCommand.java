@@ -3,6 +3,8 @@ package io.github.feydk.colorfall;
 import com.cavetale.core.command.CommandContext;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
+import io.github.feydk.colorfall.util.Msg;;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,6 +18,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 @RequiredArgsConstructor
 public final class ColorfallAdminCommand implements TabExecutor {
@@ -38,6 +42,10 @@ public final class ColorfallAdminCommand implements TabExecutor {
             .completableList(ctx -> plugin.getWorldNames())
             .description("Stop the game")
             .playerCaller(this::stop);
+        rootNode.addChild("item").arguments("<item>")
+            .completableList(Arrays.asList("SpecialDye"))
+            .description("Spawn an item")
+            .playerCaller(this::item);
     }
 
     @Override
@@ -90,6 +98,25 @@ public final class ColorfallAdminCommand implements TabExecutor {
         plugin.getGame().setState(GameState.INIT);
         plugin.getGame().cleanUpMap();
         player.sendMessage("Cleaned up.");
+        return true;
+    }
+
+    boolean item(Player player, String[] args) {
+        if (args.length != 1) return false;
+        String key = args[0];
+        ItemStack stack = plugin.getPowerups().get(key);
+        if (args[0].equals("SpecialDye")) {
+            ColorBlock cb = plugin.getGame().getGameMap().getRandomFromColorPool();
+            ItemStack newStack = new ItemStack(cb.blockData.getMaterial());
+            ItemMeta meta = newStack.getItemMeta();
+            meta.setLore(stack.getItemMeta().getLore());
+            meta.setDisplayName(stack.getItemMeta().getDisplayName());
+            newStack.setItemMeta(meta);
+            player.getInventory().addItem(newStack);
+        } else {
+            player.getInventory().addItem(stack);
+        }
+        Msg.send(player, " &eGiven item %s", key);
         return true;
     }
 }

@@ -10,7 +10,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor @Getter
-public class GamePlayer {
+public final class GamePlayer {
     private final ColorfallPlugin plugin;
     private final UUID uuid;
     boolean hasJoinedBefore = false;
@@ -43,7 +43,7 @@ public class GamePlayer {
 
     Location immobileLocation;
 
-    static enum PlayerType {
+    public enum PlayerType {
         PLAYER,
         SPECTATOR
     }
@@ -62,8 +62,9 @@ public class GamePlayer {
     public void setPlayer() {
         type = PlayerType.PLAYER;
         Player player = plugin.getServer().getPlayer(uuid);
-        if (player != null)
+        if (player != null) {
             player.setGameMode(GameMode.ADVENTURE);
+        }
         didPlay = true;
     }
 
@@ -72,8 +73,9 @@ public class GamePlayer {
         type = PlayerType.SPECTATOR;
 
         Player player = plugin.getServer().getPlayer(uuid);
-        if (player != null)
+        if (player != null) {
             player.setGameMode(GameMode.SPECTATOR);
+        }
     }
 
     public boolean diedThisRound() {
@@ -101,22 +103,22 @@ public class GamePlayer {
     }
 
     public Location getSpawnLocation() {
-        if(spawnLocation != null)
+        if (spawnLocation != null) {
             return spawnLocation;
-
-        if (plugin.getGame().getGameMap() != null)
+        }
+        if (plugin.getGame().getGameMap() != null) {
             return plugin.getGame().getGameMap().dealSpawnLocation();
-
+        }
         return Bukkit.getWorlds().get(0).getSpawnLocation();
     }
 
     // Set amount of lives. Note: should only be called once when the game starts.
     public void setLives(int lives) {
         this.livesLeft = lives;
-
         Player player = plugin.getServer().getPlayer(uuid);
-        if (player != null)
+        if (player != null) {
             plugin.getScoreboard().setPlayerScore(player, lives);
+        }
     }
 
     public boolean isAlive() {
@@ -129,7 +131,7 @@ public class GamePlayer {
         // See onEntityDamage for why I keep track of this.
         lastDeath = System.currentTimeMillis();
         diedThisRound = true;
-        if(livesLeft > 0) {
+        if (livesLeft > 0) {
             livesLeft--;
         }
         Player player = plugin.getServer().getPlayer(uuid);
@@ -155,68 +157,56 @@ public class GamePlayer {
         return disconnectedTics;
     }
 
-    public void setDisconnectedTicks(long ticks)
-    {
+    public void setDisconnectedTicks(long ticks) {
         disconnectedTics = ticks;
     }
 
-    public void addRound()
-    {
+    public void addRound() {
         roundsPlayed++;
     }
 
-    public void addRandomizer()
-    {
+    public void addRandomizer() {
         randomizersUsed++;
     }
 
-    public void addClock()
-    {
+    public void addClock() {
         clocksUsed++;
     }
 
-    public void addDye()
-    {
+    public void addDye() {
         dyesUsed++;
     }
 
-    public void addEnderpearl()
-    {
+    public void addEnderpearl() {
         enderpearlsUsed++;
     }
 
-    public void addSnowball()
-    {
+    public void addSnowball() {
         snowballsUsed++;
     }
 
-    public void addSnowballHit()
-    {
+    public void addSnowballHit() {
         snowballsHit++;
     }
 
-    public void setWinner()
-    {
+    public void setWinner() {
         winner = true;
     }
 
-    public void setEndTime(Date end)
-    {
+    public void setEndTime(Date end) {
         endTime = end;
     }
 
-    public void setStartTime(Date start)
-    {
+    public void setStartTime(Date start) {
         startTime = start;
     }
 
     void makeImmobile(Player player, Location location) {
         this.immobileLocation = location;
-        if(!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 2.0)
-            {
-                player.teleport(location);
-                plugin.getLogger().info("Teleported " + player.getName() + " to their spawn location");
-            }
+        if (!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 2.0) {
+            player.teleport(location);
+            plugin.getLogger().info("Teleported " + player.getName() + " to their spawn location");
+        }
         player.setFlySpeed(0);
         player.setWalkSpeed(0);
     }
@@ -230,13 +220,12 @@ public class GamePlayer {
     void onTick(Player player) {
         if (player == null) return;
         if (immobileLocation != null) {
-            if(!player.getLocation().getWorld().equals(immobileLocation.getWorld()) || player.getLocation().distanceSquared(immobileLocation) > 2.0)
-                {
-                    player.setFlySpeed(0);
-                    player.setWalkSpeed(0);
-                    player.teleport(immobileLocation);
-                    plugin.getLogger().info("Teleported " + player.getName() + " to their spawn location");
-                }
+            if (!player.getLocation().getWorld().equals(immobileLocation.getWorld()) || player.getLocation().distanceSquared(immobileLocation) > 2.0) {
+                player.setFlySpeed(0);
+                player.setWalkSpeed(0);
+                player.teleport(immobileLocation);
+                plugin.getLogger().info("Teleported " + player.getName() + " to their spawn location");
+            }
         }
     }
 
