@@ -252,8 +252,8 @@ public final class ColorfallGame {
                     gp.setDiedThisRound(false);
                     // Hand out powerups.
                     List<ItemStack> powerups = round.getDistributedPowerups(gp.getLivesLeft());
-                    if (plugin.getPowerups().size() > 0) {
-                        for (ItemStack stack : plugin.getPowerups().values()) {
+                    if (powerups.size() > 0) {
+                        for (ItemStack stack : powerups) {
                             player.getInventory().addItem(stack.clone());
                         }
                     }

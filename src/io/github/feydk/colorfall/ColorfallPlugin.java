@@ -149,7 +149,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             // Parse powerups.
             if (roundPowerups != null) {
                 for (String powerup : roundPowerups.getKeys(true)) {
-                    round.addPowerup(this.powerups.get(powerup), roundPowerups.getDouble(powerup));
+                    round.addPowerup(powerups.get(powerup), roundPowerups.getDouble(powerup));
                 }
             }
             rounds.put(Integer.parseInt(key), round);

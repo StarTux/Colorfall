@@ -89,7 +89,7 @@ public final class Round {
         }
         for (Entry<ItemStack, Double> entry : powerups.entrySet()) {
             double chance = entry.getValue() * 3 / (double) (lives > 0 ? lives : 1);
-            double number = Math.random() * 100;
+            double number = Math.random() * 100.0;
             if (number < chance) {
                 ItemStack stack = entry.getKey();
                 // Special case. Don't give an ink sack, but a random dye of one of the colors in the pool.
