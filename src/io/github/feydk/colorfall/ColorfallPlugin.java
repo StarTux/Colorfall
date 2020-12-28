@@ -1,12 +1,16 @@
 package io.github.feydk.colorfall;
 
 import com.winthier.sql.SQLDatabase;
+import io.github.feydk.colorfall.util.Json;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -37,6 +41,8 @@ public final class ColorfallPlugin extends JavaPlugin {
     private BossBar bossBar;
     //
     private ColorfallGame game;
+    private SaveState saveState;
+    private int ticksWaiting;
 
     @Override
     public void onEnable() {
@@ -49,43 +55,11 @@ public final class ColorfallPlugin extends JavaPlugin {
         saveResource("rounds.yml", false);
         loadConf();
         // Retiring the config value for now.
-        System.out.println("Setting up Colorfall player stats");
-        final String sql = ""
-            + "CREATE TABLE IF NOT EXISTS `colorfall_playerstats` ("
-            + " `id` INT(11) NOT NULL AUTO_INCREMENT,"
-            + " `game_uuid` VARCHAR(40) NOT NULL,"
-            + " `player_uuid` VARCHAR(40) NOT NULL,"
-            + " `player_name` VARCHAR(16) NOT NULL,"
-            + " `start_time` DATETIME NOT NULL,"
-            + " `end_time` DATETIME NOT NULL,"
-            + " `rounds_played` INT(11) NOT NULL,"
-            + " `rounds_survived` INT(11) NOT NULL,"
-            + " `deaths` INT(11) NOT NULL,"
-            + " `lives_left` INT(11) NOT NULL,"
-            + " `superior_win` INT(11) NOT NULL,"
-            + " `dyes_used` INT(11) NOT NULL,"
-            + " `randomizers_used` INT(11) NOT NULL,"
-            + " `clocks_used` INT(11) NOT NULL,"
-            + " `enderpearls_used` INT(11) NOT NULL,"
-            + " `snowballs_used` INT(11) NOT NULL,"
-            + " `snowballs_hit` INT(11) NOT NULL,"
-            + " `winner` INT(11) NOT NULL,"
-            + " `sp_game` BOOLEAN NOT NULL,"
-            + " `map_id` VARCHAR(40) NULL, "
-            + " PRIMARY KEY (`id`)"
-            + ")";
-        try {
-            db.executeUpdate(sql);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        System.out.println("Done setting up Colorfall player stats");
         Bukkit.getScheduler().runTaskTimer(this, this::tick, 1, 1);
         getServer().getPluginManager().registerEvents(new EventListener(this), this);
         bossBar = getServer().createBossBar("Colorfall", BarColor.BLUE, BarStyle.SOLID);
         scoreboard = new GameScoreboard();
-        game = new ColorfallGame(this);
-        game.enable();
+        loadSave();
         for (Player player : getServer().getOnlinePlayers()) {
             enter(player);
         }
@@ -93,9 +67,23 @@ public final class ColorfallPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        save();
         for (Player player : getServer().getOnlinePlayers()) {
             exit(player);
         }
+        if (game != null) {
+            game.cleanUpMap();
+            game = null;
+        }
+        gamePlayers.clear();
+    }
+
+    void loadSave() {
+        saveState = Json.load(new File(getDataFolder(), "save.json"), SaveState.class, SaveState::new);
+    }
+
+    void save() {
+        Json.save(new File(getDataFolder(), "save.json"), saveState);
     }
 
     public void enter(Player player) {
@@ -169,15 +157,63 @@ public final class ColorfallPlugin extends JavaPlugin {
     }
 
     void tick() {
+        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+        if (players.isEmpty()) {
+            if (game != null) {
+                game.disable();
+                game = null;
+            }
+            gamePlayers.clear();
+            ticksWaiting = 0;
+            return;
+        }
+        if (players.size() < 2) {
+            bossBar.setTitle(ChatColor.LIGHT_PURPLE + "Waiting for players...");
+            ticksWaiting = 0;
+            return;
+        }
+        if (game == null) {
+            if (ticksWaiting < waitForPlayersDuration * 20) {
+                bossBar.setTitle(ChatColor.LIGHT_PURPLE + "Waiting for players...");
+                double progress = (double) ticksWaiting / (double) (waitForPlayersDuration * 20);
+                bossBar.setProgress(Math.max(0, Math.min(1, progress)));
+                ticksWaiting += 1;
+                return;
+            } else {
+                loadPowerups();
+                loadRounds();
+                game = new ColorfallGame(this);
+                game.enable();
+            }
+        }
+        boolean loadNewWorld = game.getState() == GameState.INIT || (game.getState() == GameState.END && game.isObsolete());
+        if (loadNewWorld) {
+            gamePlayers.clear();
+            GameMap oldMap = game.getGameMap();
+            if (saveState.worlds.isEmpty()) {
+                if (worldNames.isEmpty()) throw new IllegalStateException("World name is empty!");
+                saveState.worlds.addAll(worldNames);
+                Collections.shuffle(saveState.worlds);
+            }
+            String worldName = saveState.worlds.remove(saveState.worlds.size() - 1);
+            save();
+            if (game.isObsolete()) {
+                loadPowerups();
+                loadRounds();
+                game = new ColorfallGame(this);
+                game.enable();
+            }
+            game.loadMap(worldName);
+            game.bringAllPlayers();
+            game.setState(GameState.COUNTDOWN_TO_START);
+            if (oldMap != null) oldMap.cleanUp();
+        }
         game.tick();
     }
 
     public GamePlayer getGamePlayer(Player player) {
         GamePlayer gp = gamePlayers.computeIfAbsent(player.getUniqueId(), u -> new GamePlayer(this, u));
         gp.setName(player.getName());
-        if (player.getName().equals("Cavetale")) {
-            gp.setSpectator();
-        }
         return gp;
     }
 }

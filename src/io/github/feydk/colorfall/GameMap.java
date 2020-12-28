@@ -1,5 +1,7 @@
 package io.github.feydk.colorfall;
 
+import io.github.feydk.colorfall.util.Players;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,6 +12,7 @@ import java.util.Random;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Value;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
@@ -24,6 +27,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.MetadataValue;
@@ -114,11 +118,7 @@ public final class GameMap {
         for (Block b : replacedBlocks) {
             if (b.getType() != Material.AIR && b.getBlockData().equals(currentColor.blockData)) {
                 Color color = Color.fromBlockData(currentColor.blockData);
-                world.spawnParticle(Particle.REDSTONE, b.getLocation().add(.5, 1.5, .5), 5, .5f, .5f, .5f, .01f, new Particle.DustOptions(color.toBukkitColor(), 10.0f));
-                //(Location location, Effect effect, int id, int data, float offsetX, float offsetY, float offsetZ, float speed, int particleCount, int radius)
-                // String cmd = String.format("minecraft:execute at %s run minecraft:summon minecraft:falling_block %d %.2f %d {\"Time\":579,\"BlockState\":{\"Name\":\"stone_pressure_plate\"},\"NoGravity\":1,\"DropItem\":0,\"Glowing\":1}", world.getPlayers().get(0).getName(), b.getX(), (float) b.getY() + 0.9f, b.getZ());
-                // System.out.println(cmd);
-                // Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), cmd);
+                world.spawnParticle(Particle.REDSTONE, b.getLocation().add(.5, 1.5, .5), 5, .5f, .5f, .5f, .01f, new Particle.DustOptions(color.toBukkitColor(), 1.0f));
             }
         }
     }
@@ -486,6 +486,20 @@ public final class GameMap {
                 e.remove();
             }
         }
+    }
+
+    public void cleanUp() {
+        clearHighlightBlocks();
+        for (Player player : world.getPlayers()) {
+            Players.heal(player);
+            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            Players.reset(player);
+        }
+        File dir = world.getWorldFolder();
+        if (!Bukkit.unloadWorld(world, false)) {
+            throw new IllegalStateException("Cannot unload world: " + world.getName());
+        }
+        ColorfallLoader.deleteFiles(dir);
     }
 }
 

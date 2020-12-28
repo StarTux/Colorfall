@@ -3,6 +3,7 @@ package io.github.feydk.colorfall;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import io.github.feydk.colorfall.util.Msg;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -26,6 +27,7 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -41,6 +43,10 @@ public final class EventListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         plugin.enter(player);
+        if (plugin.getGame() == null) {
+            player.setGameMode(GameMode.ADVENTURE);
+            return;
+        }
         GamePlayer gp = plugin.getGamePlayer(player);
         // if (!gp.hasJoinedBefore) {
         //     playerJoinedForTheFirstTime(player);
@@ -53,9 +59,7 @@ public final class EventListener implements Listener {
         }
         switch (plugin.getGame().getState()) {
         case STARTED:
-            if (!gp.isPlayer()) {
-                gp.setSpectator();
-            }
+            gp.setSpectator();
             break;
         case INIT:
         case WAIT_FOR_PLAYERS:
@@ -68,6 +72,10 @@ public final class EventListener implements Listener {
             // gp.makeMobile(player);
             // gp.setPlayer();
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -199,7 +207,11 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event) {
-        event.setSpawnLocation(plugin.getGame().getSpawnLocation(event.getPlayer()));
+        if (plugin.getGame() == null || plugin.getGame().getGameMap() == null) {
+            event.setSpawnLocation(Bukkit.getWorlds().get(0).getSpawnLocation());
+        } else {
+            event.setSpawnLocation(plugin.getGame().getSpawnLocation(event.getPlayer()));
+        }
     }
 
     @EventHandler

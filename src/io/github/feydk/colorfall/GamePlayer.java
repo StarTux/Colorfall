@@ -3,13 +3,13 @@ package io.github.feydk.colorfall;
 import java.util.Date;
 import java.util.UUID;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-@RequiredArgsConstructor @Getter
+@RequiredArgsConstructor @Getter @Setter
 public final class GamePlayer {
     private final ColorfallPlugin plugin;
     private final UUID uuid;
@@ -20,11 +20,10 @@ public final class GamePlayer {
     private boolean isAlive = true;
     private long lastDeath;
     private long disconnectedTics;
-    private Location spawnLocation;
     private boolean statsRecorded;
     private boolean didPlay = false;
     private boolean diedThisRound = false;
-
+    private Location spawnLocation;
     // Player stats and highscore stuff.
     private boolean winner = false;
     private Date startTime;
@@ -71,7 +70,6 @@ public final class GamePlayer {
     // Set player as spectator.
     public void setSpectator() {
         type = PlayerType.SPECTATOR;
-
         Player player = plugin.getServer().getPlayer(uuid);
         if (player != null) {
             player.setGameMode(GameMode.SPECTATOR);
@@ -84,32 +82,6 @@ public final class GamePlayer {
 
     public void setDiedThisRound(boolean diedThisRound) {
         this.diedThisRound = diedThisRound;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public boolean isReady() {
-        return isReady;
-    }
-
-    public void setReady(boolean ready) {
-        isReady = ready;
-    }
-
-    public Location getSpawnLocation() {
-        if (spawnLocation != null) {
-            return spawnLocation;
-        }
-        if (plugin.getGame().getGameMap() != null) {
-            return plugin.getGame().getGameMap().dealSpawnLocation();
-        }
-        return Bukkit.getWorlds().get(0).getSpawnLocation();
     }
 
     // Set amount of lives. Note: should only be called once when the game starts.

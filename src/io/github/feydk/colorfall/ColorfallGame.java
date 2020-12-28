@@ -1,7 +1,6 @@
 package io.github.feydk.colorfall;
 
 import io.github.feydk.colorfall.util.Msg;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -21,6 +20,7 @@ import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -55,29 +55,13 @@ public final class ColorfallGame {
     private boolean currentRoundRandomized;
     private ColorBlock currentColor;
     private List<Block> paintedBlocks = new ArrayList<Block>();
+    private boolean obsolete = false;
 
     void enable() {
     }
 
     void disable() {
         cleanUpMap();
-    }
-
-    void reset() {
-        roundState = null;
-        ticks = 0;
-        stateTicks = 0;
-        roundTicks = 0;
-        winTicks = -1;
-        randomizeCooldown = 0;
-        moreThanOnePlayed = false;
-        winner = null;
-        currentRoundIdx = 0;
-        currentRound = null;
-        currentRoundDuration = 0;
-        currentRoundRandomized = false;
-        currentColor = null;
-        paintedBlocks.clear();
     }
 
     // Find the config that belongs to this round. I.e. if round is 2 and we have round configs for 1 and 20, we use the config for round 1.
@@ -110,7 +94,7 @@ public final class ColorfallGame {
     protected void tick() {
         ticks++;
         GameState newState = null;
-        if (state != GameState.INIT && state != GameState.WAIT_FOR_PLAYERS && state != GameState.END) {
+        if (state == GameState.STARTED) {
             // Check if only one player is left.
             int aliveCount = 0;
             GamePlayer survivor = null;
@@ -157,6 +141,7 @@ public final class ColorfallGame {
         }
         // Check for disconnects.
         for (GamePlayer gp : new ArrayList<>(plugin.getGamePlayers().values())) {
+            if (!gp.isPlayer()) continue;
             Player player = Bukkit.getPlayer(gp.getUuid());
             if (player != null) gp.onTick(player);
             if (player == null) {
@@ -183,7 +168,6 @@ public final class ColorfallGame {
         stateTicks = 0;
         switch (newState) {
         case INIT:
-            reset();
             break;
         case WAIT_FOR_PLAYERS:
             plugin.getScoreboard().setTitle(ChatColor.GREEN + "Waiting");
@@ -207,7 +191,6 @@ public final class ColorfallGame {
                     player.getInventory().clear();
                     gp.setPlayer();
                 }
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
             }
             break;
         case STARTED:
@@ -220,17 +203,7 @@ public final class ColorfallGame {
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
                 count++;
             }
-            if (count > 1) {
-                moreThanOnePlayed = true;
-            } else {
-                // If it's a single player game not in debug mode, reduce lives to 1.
-                if (!debug) {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        GamePlayer gp = plugin.getGamePlayer(player);
-                        gp.setLives(1);
-                    }
-                }
-            }
+            moreThanOnePlayed = count > 1;
             break;
         case END:
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -350,55 +323,19 @@ public final class ColorfallGame {
         return null;
     }
 
-    GameState tickWaitForPlayers(long theTicks) {
-        // Every 5 seconds, ask players to ready (or leave).
-        if (theTicks % (20 * 5) == 0) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                GamePlayer gp = plugin.getGamePlayer(player);
-                if (!gp.isReady()) {
-                    List<Object> list = new ArrayList<>();
-                    list.add(Msg.format(" &fClick here when ready: "));
-                    list.add(Msg.button("&3[Ready]", "&3Mark yourself as ready", "/cf ready"));
-                    // list.add(format("&f or "));
-                    // list.add(Msg.button("&c[Quit]", "&cLeave this game", "/quit"));
-                    Msg.sendRaw(player, list);
-                }
-            }
-        }
-        long totalCount = 0;
-        long readyCount = 0;
+    public void bringAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            GamePlayer gamePlayer = plugin.getGamePlayer(player);
-            if (gamePlayer.isSpectator()) continue;
-            totalCount += 1;
-            if (gamePlayer.isReady()) readyCount += 1;
+            GamePlayer gp = plugin.getGamePlayer(player);
+            gp.setReady(true);
+            gp.setPlayer();
+            plugin.getScoreboard().setPlayerScore(player, 1);
+            Location loc = gameMap.dealSpawnLocation();
+            gp.setSpawnLocation(loc);
+            player.teleport(loc, TeleportCause.PLUGIN);
         }
-        long timeLeft = (plugin.getWaitForPlayersDuration() * 20) - theTicks;
-        plugin.getBossBar().setTitle(ChatColor.AQUA + "Waiting for players (" + readyCount + "/" + totalCount + ")");
-        plugin.getBossBar().setProgress(plugin.getWaitForPlayersDuration() == 0.0 ? 0.0 : (double) timeLeft / (double) (plugin.getWaitForPlayersDuration() * 20));
-        // Every second, update the sidebar timer.
-        if (timeLeft % 20 == 0) {
-            plugin.getScoreboard().refreshTitle(timeLeft);
-            // Check if all players are ready.
-            boolean allReady = true;
-            int playerCount = 0;
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                playerCount++;
-                GamePlayer gp = plugin.getGamePlayer(player);
-                if (!gp.isReady() && !gp.isSpectator()) {
-                    allReady = false;
-                    break;
-                }
-            }
-            // If they are, start the countdown (to start the game).
-            if (allReady) {
-                return GameState.COUNTDOWN_TO_START;
-            }
-        }
-        // Time ran out, so we force everyone ready.
-        if (timeLeft <= 0) {
-            return GameState.COUNTDOWN_TO_START;
-        }
+    }
+
+    GameState tickWaitForPlayers(long theTicks) {
         return null;
     }
 
@@ -482,6 +419,7 @@ public final class ColorfallGame {
             // Show/refresh particle effect above the blocks.
             //gameMap.animateBlocks(currentColor);
             gameMap.highlightBlocks(currentColor);
+            gameMap.animateBlocks(currentColor);
             // Handle randomize events.
             if (round.getRandomize() && !currentRoundRandomized) {
                 // Fire this about 2 seconds before we're half way through the round, but no later than 2 seconds after half way.
@@ -535,22 +473,6 @@ public final class ColorfallGame {
     }
 
     GameState tickEnd(long theTicks) {
-        if (theTicks == 0) {
-            if (winner != null) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Technicolor");
-            }
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (winner != null) {
-                    Msg.send(player, " &b%s wins the game!", winner.getName());
-                } else {
-                    Msg.send(player, " &bDraw! Nobody wins.");
-                }
-                List<Object> list = new ArrayList<>();
-                list.add(" Click here to leave the game: ");
-                list.add(Msg.button("&c[Spawn]", "&cLeave this game", "/spawn"));
-                Msg.sendRaw(player, list);
-            }
-        }
         long timeLeft = (plugin.getEndDuration() * 20) - theTicks;
         // Every second, update the sidebar timer.
         if (timeLeft % 20L == 0) {
@@ -567,8 +489,7 @@ public final class ColorfallGame {
             }
         }
         if (timeLeft <= 0) {
-            cleanUpMap();
-            setState(GameState.INIT);
+            obsolete = true;
         }
         return null;
     }
@@ -676,15 +597,7 @@ public final class ColorfallGame {
 
     void cleanUpMap() {
         if (gameMap == null) return;
-        gameMap.clearHighlightBlocks();
-        for (Player player : gameMap.getWorld().getPlayers()) {
-            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
-        }
-        File dir = gameMap.getWorld().getWorldFolder();
-        if (!Bukkit.unloadWorld(gameMap.getWorld(), false)) {
-            throw new IllegalStateException("Cannot unload world: " + gameMap.getWorld().getName());
-        }
-        ColorfallLoader.deleteFiles(dir);
+        gameMap.cleanUp();
         gameMap = null;
     }
 

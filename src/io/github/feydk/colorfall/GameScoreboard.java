@@ -58,8 +58,7 @@ public final class GameScoreboard {
 
     // Refresh the scoreboard title with a timer (which is an amount of seconds).
     public void refreshTitle(long ticks) {
-        title += " " + getFormattedTime(ticks);
-        objective.setDisplayName(title);
+        objective.setDisplayName(title + " " + getFormattedTime(ticks));
     }
 
     // When a player is eliminated, make his name dark red in the scoreboard.
