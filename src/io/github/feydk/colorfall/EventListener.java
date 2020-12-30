@@ -16,6 +16,7 @@ import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -231,5 +232,11 @@ public final class EventListener implements Listener {
             Player launcher = (Player) proj.getShooter();
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
         }
+    }
+
+    @EventHandler
+    void onBlockExplode(BlockExplodeEvent event) {
+        event.blockList().clear();
+        event.setCancelled(true);
     }
 }
