@@ -271,6 +271,14 @@ public final class ColorfallGame {
         case REMOVING_BLOCKS:
             world.setPVP(false);
             gameMap.removeBlocks(currentColor);
+            for (GamePlayer gp : plugin.getGamePlayers().values()) {
+                if (!gp.isPlayer()) continue;
+                Player player = Bukkit.getPlayer(gp.getUuid());
+                if (player == null) continue;
+                if (!gameMap.isBlockWithinCuboid(player.getLocation().getBlock())) {
+                    player.teleport(gameMap.getWorld().getSpawnLocation());
+                }
+            }
             break;
             // Restore blocks.
         case RESTORING_BLOCKS:
