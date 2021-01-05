@@ -173,7 +173,7 @@ public final class ColorfallGame {
             plugin.getScoreboard().setTitle(ChatColor.GREEN + "Waiting");
             break;
         case COUNTDOWN_TO_START:
-            plugin.getScoreboard().setTitle(ChatColor.GREEN + "Get ready..");
+            plugin.getScoreboard().setTitle(ChatColor.GREEN + "Get ready...");
             // Once the countdown starts, remove everyone who disconnected.
             for (GamePlayer gp: plugin.getGamePlayers().values()) {
                 Player player = Bukkit.getPlayer(gp.getUuid());
@@ -185,20 +185,21 @@ public final class ColorfallGame {
                 }
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
+                if (ColorfallPlugin.STREAMER.equals(player.getName())) continue;
                 GamePlayer gp = plugin.getGamePlayer(player);
                 player.teleport(gp.getSpawnLocation());
-                if (gp.isReady()) {
-                    player.getInventory().clear();
-                    gp.setPlayer();
-                }
+                player.getInventory().clear();
+                gp.setPlayer();
+                player.setWalkSpeed(0.0f);
             }
             break;
         case STARTED:
             int count = 0;
             for (Player player : Bukkit.getOnlinePlayers()) {
+                if (ColorfallPlugin.STREAMER.equals(player.getName())) continue;
                 giveStartingItems(player);
                 GamePlayer gp = plugin.getGamePlayer(player);
-                gp.makeMobile(player);
+                player.setWalkSpeed(0.2f);
                 gp.setStartTime(new Date());
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
                 count++;
@@ -276,7 +277,7 @@ public final class ColorfallGame {
                 Player player = Bukkit.getPlayer(gp.getUuid());
                 if (player == null) continue;
                 if (!gameMap.isBlockWithinCuboid(player.getLocation().getBlock())) {
-                    player.teleport(gameMap.getWorld().getSpawnLocation());
+                    player.teleport(gp.getSpawnLocation());
                 }
             }
             break;
@@ -334,7 +335,6 @@ public final class ColorfallGame {
     public void bringAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             GamePlayer gp = plugin.getGamePlayer(player);
-            gp.setReady(true);
             gp.setPlayer();
             plugin.getScoreboard().setPlayerScore(player, 1);
             Location loc = gameMap.dealSpawnLocation();

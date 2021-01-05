@@ -24,6 +24,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 @Getter
 public final class ColorfallPlugin extends JavaPlugin {
+    public static final String STREAMER = "Cavetale";
     private final Map<String, ItemStack> powerups = new HashMap<String, ItemStack>();
     private final Map<Integer, Round> rounds = new HashMap<Integer, Round>();
     private final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();

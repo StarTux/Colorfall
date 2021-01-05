@@ -16,7 +16,6 @@ public final class GamePlayer {
     boolean hasJoinedBefore = false;
     private PlayerType type;
     private String name;
-    private boolean isReady;
     private boolean isAlive = true;
     private long lastDeath;
     private long disconnectedTics;
@@ -171,22 +170,6 @@ public final class GamePlayer {
 
     public void setStartTime(Date start) {
         startTime = start;
-    }
-
-    void makeImmobile(Player player, Location location) {
-        this.immobileLocation = location;
-        if (!player.getLocation().getWorld().equals(location.getWorld()) || player.getLocation().distanceSquared(location) > 2.0) {
-            player.teleport(location);
-            plugin.getLogger().info("Teleported " + player.getName() + " to their spawn location");
-        }
-        player.setFlySpeed(0);
-        player.setWalkSpeed(0);
-    }
-
-    void makeMobile(Player player) {
-        this.immobileLocation = null;
-        player.setWalkSpeed(.2f);
-        player.setFlySpeed(.1f);
     }
 
     void onTick(Player player) {

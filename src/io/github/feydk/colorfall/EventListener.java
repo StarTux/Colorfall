@@ -50,9 +50,6 @@ public final class EventListener implements Listener {
             return;
         }
         GamePlayer gp = plugin.getGamePlayer(player);
-        // if (!gp.hasJoinedBefore) {
-        //     playerJoinedForTheFirstTime(player);
-        // }
         gp.setDisconnectedTicks(0);
         plugin.getScoreboard().addPlayer(player);
         if (gp.isSpectator()) {
@@ -66,18 +63,14 @@ public final class EventListener implements Listener {
         case INIT:
         case WAIT_FOR_PLAYERS:
         case COUNTDOWN_TO_START:
-            // Someone joins in the early stages, we make sure they are locked in the right place.
-            //gp.makeImmobile(player, gp.getSpawnLocation());
             break;
         default:
-            // Join later and we make sure you are in the right state.
-            // gp.makeMobile(player);
-            // gp.setPlayer();
         }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
+        event.getPlayer().setWalkSpeed(0.2f);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -141,16 +134,12 @@ public final class EventListener implements Listener {
         if (event.getCause() == DamageCause.VOID) {
             event.setCancelled(true);
             player.setHealth(20);
-            gp.died();
-            RoundState roundState = plugin.getGame().getRoundState();
-            if (roundState == RoundState.RUNNING || roundState == RoundState.REMOVING_BLOCKS || roundState == RoundState.RESTORING_BLOCKS) {
-                player.setVelocity(new Vector().zero());
-                player.teleport(gp.getSpawnLocation());
-                player.setHealth(20.0);
-                player.setGameMode(GameMode.SPECTATOR);
-                //gp.makeImmobile(player, gp.getSpawnLocation());
-            } else {
-                player.teleport(gp.getSpawnLocation());
+            player.setVelocity(new Vector().zero());
+            player.teleport(gp.getSpawnLocation());
+            player.setHealth(20.0);
+            player.setGameMode(GameMode.SPECTATOR);
+            if (plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
+                gp.died();
             }
         } else {
             player.setHealth(20);
