@@ -3,6 +3,7 @@ package io.github.feydk.colorfall;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import io.github.feydk.colorfall.util.Msg;
 import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
@@ -224,13 +225,16 @@ public final class EventListener implements Listener {
         Player victim = (Player) target;
         event.setCancelled(true);
         if (plugin.getGame().getRoundState() != RoundState.RUNNING) return;
-        Vector velo = proj.getVelocity().normalize().setY(0.25).normalize();
+        Vector velo = proj.getVelocity().normalize().setY(0);
+        if (velo.length() < 0.01) return;
+        velo = velo.setY(0.25).normalize();
         victim.setVelocity(velo.multiply(3.0));
         victim.getWorld().spawnParticle(Particle.SNOWBALL, proj.getLocation(), 48, 0.2, 0.2, 0.2, 0.0);
         victim.getWorld().playSound(proj.getLocation(), Sound.BLOCK_SNOW_BREAK, SoundCategory.MASTER, 2.0f, 1.0f);
         if (proj.getShooter() instanceof Player) {
             Player launcher = (Player) proj.getShooter();
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
+            victim.sendMessage(ChatColor.RED + launcher.getName() + " hit you with a snowball");
         }
     }
 

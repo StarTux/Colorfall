@@ -78,6 +78,8 @@
       </resource>
     </resources>
     <plugins>
+
+      <!-- Java 8 -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -85,8 +87,14 @@
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
+          <showDeprecation>true</showDeprecation>
+          <showWarnings>true</showWarnings>
+          <compilerArgs>
+            <arg>-Xlint:unchecked</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
+
     </plugins>
   </build>
 </project>
