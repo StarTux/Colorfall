@@ -2,7 +2,9 @@ package io.github.feydk.colorfall;
 
 import io.github.feydk.colorfall.util.Msg;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import lombok.Getter;
@@ -19,6 +21,7 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
@@ -128,6 +131,9 @@ public final class ColorfallGame {
                             survivor.setWinner();
                             survivor.setEndTime(new Date());
                             newState = GameState.END;
+                            if (plugin.saveState.event) {
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Colorful Technicolor");
+                            }
                         }
                     }
                 }
@@ -185,7 +191,7 @@ public final class ColorfallGame {
                 }
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (ColorfallPlugin.STREAMER.equals(player.getName())) continue;
+                if (player.isPermissionSet("group.streamer") && player.hasPermission("group.streamer")) continue;
                 GamePlayer gp = plugin.getGamePlayer(player);
                 player.teleport(gp.getSpawnLocation());
                 player.getInventory().clear();
@@ -196,12 +202,15 @@ public final class ColorfallGame {
         case STARTED:
             int count = 0;
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (ColorfallPlugin.STREAMER.equals(player.getName())) continue;
+                if (player.isPermissionSet("group.streamer") && player.hasPermission("group.streamer")) continue;
                 giveStartingItems(player);
                 GamePlayer gp = plugin.getGamePlayer(player);
                 player.setWalkSpeed(0.2f);
                 gp.setStartTime(new Date());
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1f, 1f);
+                if (plugin.saveState.event) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
+                }
                 count++;
             }
             moreThanOnePlayed = count > 1;
@@ -246,15 +255,26 @@ public final class ColorfallGame {
             // Do this again to make sure. It seems 1.9 changed this somehow.
             world.setWeatherDuration(Integer.MAX_VALUE);
             world.setStorm(false);
-            for (Player player : Bukkit.getOnlinePlayers()) {
+            List<Block> blocks = new ArrayList<>(gameMap.getReplacedBlocks());
+            Collections.shuffle(blocks);
+            Iterator<Block> blocksIter = blocks.iterator();
+            List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
+            Collections.shuffle(players);
+            for (Player player : players) {
                 GamePlayer gp = plugin.getGamePlayer(player);
                 if (gp.isAlive() && gp.isPlayer()) {
                     gp.addRound();
                     gp.setDiedThisRound(false);
                     // Hand out powerups.
-                    List<ItemStack> powerups = round.getDistributedPowerups(gp.getLivesLeft());
-                    if (powerups.size() > 0) {
-                        for (ItemStack stack : powerups) {
+                    List<ItemStack> powerups = round.getDistributedPowerups();
+                    for (ItemStack stack : powerups) {
+                        if (blocksIter.hasNext()) {
+                            Block block = blocksIter.next();
+                            Location location = block.getLocation().add(0.5, 1.01, 0.5);
+                            Item item = location.getWorld().dropItem(location, stack);
+                            item.setGlowing(true);
+                            item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                        } else {
                             player.getInventory().addItem(stack.clone());
                         }
                     }
@@ -434,6 +454,7 @@ public final class ColorfallGame {
                 // Note: the 2 seconds works with 15 second rounds. Should probably be made more dynamic or configurable.
                 if (roundTimeLeft - 40 <= Math.round(currentRoundDuration / 2) && roundTimeLeft + 40 >= Math.round(currentRoundDuration / 2) && randomizeCooldown <= 0) {
                     gameMap.randomizeBlocks();
+                    gameMap.highlightBlocks(currentColor);
                     currentRoundRandomized = true;
                     randomizeCooldown = 5 * 20;
                     String title = ChatColor.WHITE + "" + ChatColor.DARK_AQUA + "R" + ChatColor.DARK_PURPLE + "a" + ChatColor.GOLD + "n" + ChatColor.GREEN + "d" + ChatColor.AQUA + "o" + ChatColor.RED + "m";
@@ -560,6 +581,7 @@ public final class ColorfallGame {
                 if (randomizeCooldown <= 0) {
                     randomizeCooldown = 5 * 20;
                     gameMap.randomizeBlocks();
+                    gameMap.highlightBlocks(currentColor);
                     reduceItemInHand(p);
                     plugin.getGamePlayer(p).addRandomizer();
                     for (Player pp : Bukkit.getOnlinePlayers()) {

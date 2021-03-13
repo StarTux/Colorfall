@@ -82,13 +82,13 @@ public final class Round {
         return r;
     }
 
-    public List<ItemStack> getDistributedPowerups(int lives) {
+    public List<ItemStack> getDistributedPowerups() {
         List<ItemStack> list = new ArrayList<ItemStack>();
         if (powerups.size() == 0) {
             return list;
         }
         for (Entry<ItemStack, Double> entry : powerups.entrySet()) {
-            double chance = entry.getValue() * 3 / (double) (lives > 0 ? lives : 1);
+            double chance = entry.getValue();
             double number = Math.random() * 100.0;
             if (number < chance) {
                 ItemStack stack = entry.getKey();

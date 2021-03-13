@@ -5,4 +5,5 @@ import java.util.ArrayList;
 
 public final class SaveState {
     protected List<String> worlds = new ArrayList<>();
+    protected boolean event = false;
 }

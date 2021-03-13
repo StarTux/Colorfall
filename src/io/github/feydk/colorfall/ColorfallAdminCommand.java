@@ -46,6 +46,9 @@ public final class ColorfallAdminCommand implements TabExecutor {
             .completableList(Arrays.asList("SpecialDye"))
             .description("Spawn an item")
             .playerCaller(this::item);
+        rootNode.addChild("event").denyTabCompletion()
+            .description("Toggle event mode")
+            .senderCaller(this::event);
     }
 
     @Override
@@ -117,6 +120,14 @@ public final class ColorfallAdminCommand implements TabExecutor {
             player.getInventory().addItem(stack);
         }
         Msg.send(player, " &eGiven item %s", key);
+        return true;
+    }
+
+    boolean event(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        plugin.saveState.event = !plugin.saveState.event;
+        plugin.save();
+        sender.sendMessage("Event mode " + (plugin.saveState.event ? "enabled" : "disabled"));
         return true;
     }
 }
