@@ -20,6 +20,7 @@ import org.bukkit.Note;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -640,6 +641,8 @@ public final class ColorfallGame {
         world.setGameRuleValue("doFireTick", "false");
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
+        WorldBorder worldBorder = world.getWorldBorder();
+        worldBorder.setSize(8192);
         gameMap = new GameMap(plugin.getConfig().getInt("general.chunkRadius"), this, world);
         gameMap.process();
         if (gameMap.getStartingTime() == -1) {
