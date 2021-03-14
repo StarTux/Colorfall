@@ -83,17 +83,16 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (name.equals("random")) {
             Random random = ThreadLocalRandom.current();
             name = names.get(random.nextInt(names.size()));
-        } else {
-            if (!names.contains(name)) {
-                throw new CommandWarn("Unknown map: " + name);
-            }
         }
-        if (plugin.getGame().getState() != GameState.INIT) {
+        if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        plugin.getGame().loadMap(name);
-        plugin.getGame().setState(GameState.WAIT_FOR_PLAYERS);
         player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
+        ColorfallGame game = new ColorfallGame(plugin);
+        plugin.setGame(game);
+        game.loadMap(name);
+        game.bringAllPlayers();
+        game.setState(GameState.COUNTDOWN_TO_START);
         return true;
     }
 

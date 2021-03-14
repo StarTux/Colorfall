@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
+import lombok.Setter;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
@@ -40,7 +41,7 @@ public final class ColorfallPlugin extends JavaPlugin {
     private SQLDatabase db;
     private BossBar bossBar;
     //
-    private ColorfallGame game;
+    @Setter private ColorfallGame game;
     protected SaveState saveState;
     private int ticksWaiting;
 
