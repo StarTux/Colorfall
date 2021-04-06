@@ -297,7 +297,7 @@ public final class ColorfallGame {
                 if (!gp.isPlayer()) continue;
                 Player player = Bukkit.getPlayer(gp.getUuid());
                 if (player == null) continue;
-                if (player.isOnGround() && !gameMap.isBlockWithinCuboid(player.getLocation().getBlock())) {
+                if (!gameMap.isWithinBoundariesOrBelow(player.getLocation())) {
                     player.teleport(gp.getSpawnLocation());
                 }
             }

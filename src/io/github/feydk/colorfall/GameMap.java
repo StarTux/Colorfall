@@ -201,24 +201,24 @@ public final class GameMap {
             Location b2 = boundaries.get(1);
             if (b1.getX() >= b2.getX()) {
                 minX = b2.getX();
-                maxX = b1.getX();
+                maxX = b1.getX() + 1.0;
             } else {
                 minX = b1.getX();
-                maxX = b2.getX();
+                maxX = b2.getX() + 1.0;
             }
             if (b1.getY() >= b2.getY()) {
                 minY = b2.getY();
-                maxY = b1.getY();
+                maxY = b1.getY() + 1.0;
             } else {
                 minY = b1.getY();
-                maxY = b2.getY();
+                maxY = b2.getY() + 1.0;
             }
             if (b1.getZ() >= b2.getZ()) {
                 minZ = b2.getZ();
-                maxZ = b1.getZ();
+                maxZ = b1.getZ() + 1.0;
             } else {
                 minZ = b1.getZ();
-                maxZ = b2.getZ();
+                maxZ = b2.getZ() + 1.0;
             }
         }
         // Then crawl the map again, this time finding all the blocks that needs to be replaced with color blocks.
@@ -320,9 +320,10 @@ public final class GameMap {
                 for (int cz = 0; cz < 16; cz++) {
                     Block b = chunk.getBlock(cx, cy, cz);
                     // Check if b (a block in the chunk) is the same type as any of the colored blocks that needs to be replaced and add it to the list if so.
-                    for (ColorBlock block : coloredBlocks) {
+                    COLOR_BLOCKS: for (ColorBlock block : coloredBlocks) {
                         if (b.getBlockData().equals(block.blockData)) {
                             replacedBlocks.add(b);
+                            break COLOR_BLOCKS;
                         }
                     }
                 }
@@ -454,6 +455,14 @@ public final class GameMap {
             return new Vector(x, y, z).isInAABB(new Vector(minX, minY, minZ), new Vector(maxX, maxY, maxZ));
         }
         return true;
+    }
+
+    public boolean isWithinBoundariesOrBelow(Location location) {
+        if (boundaries.size() == 0) return true;
+        double x = location.getX();
+        double y = location.getY();
+        double z = location.getZ();
+        return x >= minX && x <= maxX && z >= minZ && z <= maxZ && y <= maxY;
     }
 
     public ItemStack getDye() {
