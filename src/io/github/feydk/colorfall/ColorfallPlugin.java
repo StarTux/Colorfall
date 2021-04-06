@@ -217,4 +217,14 @@ public final class ColorfallPlugin extends JavaPlugin {
         gp.setName(player.getName());
         return gp;
     }
+
+    public void stopGame() {
+        if (game != null) {
+            game.setState(GameState.INIT);
+            game.cleanUpMap();
+            game = null;
+        }
+        gamePlayers.clear();
+        ticksWaiting = 0;
+    }
 }

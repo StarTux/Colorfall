@@ -97,9 +97,8 @@ public final class ColorfallAdminCommand implements TabExecutor {
     }
 
     boolean stop(Player player, String[] args) {
-        plugin.getGame().setState(GameState.INIT);
-        plugin.getGame().cleanUpMap();
-        player.sendMessage("Cleaned up.");
+        plugin.stopGame();
+        player.sendMessage("Game stopped");
         return true;
     }
 
