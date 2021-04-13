@@ -297,8 +297,11 @@ public final class ColorfallGame {
                 if (!gp.isPlayer()) continue;
                 Player player = Bukkit.getPlayer(gp.getUuid());
                 if (player == null) continue;
-                if (!gameMap.isWithinBoundariesOrBelow(player.getLocation())) {
-                    player.teleport(gp.getSpawnLocation());
+                Block playerBlock = player.getLocation().getBlock();
+                if (!gameMap.isBlockWithinCuboid(playerBlock)) {
+                    if (player.isOnGround() || player.isSwimming() || playerBlock.isLiquid()) {
+                        player.teleport(gp.getSpawnLocation());
+                    }
                 }
             }
             break;
@@ -633,6 +636,7 @@ public final class ColorfallGame {
     }
 
     public void loadMap(String worldName) {
+        plugin.getLogger().info("Loading world: " + worldName);
         World world = ColorfallLoader.loadWorld(plugin, worldName);
         world.setDifficulty(Difficulty.HARD);
         world.setPVP(false);
