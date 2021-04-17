@@ -84,7 +84,7 @@ public final class ColorfallPlugin extends JavaPlugin {
     }
 
     void save() {
-        Json.save(new File(getDataFolder(), "save.json"), saveState);
+        Json.save(new File(getDataFolder(), "save.json"), saveState, true);
     }
 
     public void enter(Player player) {
