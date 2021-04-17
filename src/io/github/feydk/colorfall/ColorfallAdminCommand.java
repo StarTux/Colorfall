@@ -49,6 +49,10 @@ public final class ColorfallAdminCommand implements TabExecutor {
         rootNode.addChild("event").denyTabCompletion()
             .description("Toggle event mode")
             .senderCaller(this::event);
+        rootNode.addChild("next").arguments("<worlds...>")
+            .completableList(ctx -> plugin.getWorldNames())
+            .description("Set the next worlds")
+            .senderCaller(this::next);
     }
 
     @Override
@@ -126,6 +130,14 @@ public final class ColorfallAdminCommand implements TabExecutor {
         plugin.saveState.event = !plugin.saveState.event;
         plugin.save();
         sender.sendMessage("Event mode " + (plugin.saveState.event ? "enabled" : "disabled"));
+        return true;
+    }
+
+    boolean next(CommandSender sender, String[] args) {
+        plugin.saveState.worlds.clear();
+        plugin.saveState.worlds.addAll(Arrays.asList(args));
+        plugin.save();
+        sender.sendMessage("Next worlds set: " + plugin.saveState.worlds);
         return true;
     }
 }
