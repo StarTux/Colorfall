@@ -133,7 +133,7 @@ public final class ColorfallGame {
                             survivor.setEndTime(new Date());
                             newState = GameState.END;
                             if (plugin.saveState.event) {
-                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Colorful Technicolor");
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Colorful Technicolor Prismatic");
                             }
                         }
                     }
