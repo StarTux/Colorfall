@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -135,7 +136,9 @@ public final class EventListener implements Listener {
             event.setCancelled(true);
             player.setHealth(20);
             player.setVelocity(new Vector().zero());
-            player.teleport(gp.getSpawnLocation());
+            Location location = gp.getSpawnLocation();
+            if (location == null) location = Bukkit.getWorlds().get(0).getSpawnLocation();
+            player.teleport(location);
             player.setHealth(20.0);
             player.setGameMode(GameMode.SPECTATOR);
             if (plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
