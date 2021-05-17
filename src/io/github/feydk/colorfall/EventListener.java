@@ -137,7 +137,7 @@ public final class EventListener implements Listener {
             player.setHealth(20);
             player.setVelocity(new Vector().zero());
             Location location = gp.getSpawnLocation();
-            if (location == null) location = Bukkit.getWorlds().get(0).getSpawnLocation();
+            if (location == null) location = player.getWorld().getSpawnLocation();
             player.teleport(location);
             player.setHealth(20.0);
             player.setGameMode(GameMode.SPECTATOR);
