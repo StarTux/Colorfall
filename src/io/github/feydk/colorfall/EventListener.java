@@ -1,7 +1,6 @@
 package io.github.feydk.colorfall;
 
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
-import io.github.feydk.colorfall.util.Msg;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
@@ -57,6 +56,7 @@ public final class EventListener implements Listener {
             gp.setSpectator();
             return;
         }
+        if (plugin.getGame() == null) return;
         switch (plugin.getGame().getState()) {
         case STARTED:
             gp.setSpectator();
@@ -76,6 +76,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (plugin.getGame() == null) return;
         if (event.getCause() != TeleportCause.ENDER_PEARL) {
             return;
         }
@@ -141,7 +142,7 @@ public final class EventListener implements Listener {
             player.teleport(location);
             player.setHealth(20.0);
             player.setGameMode(GameMode.SPECTATOR);
-            if (plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
+            if (plugin.getGame() != null && plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
                 gp.died();
             }
         } else {
@@ -159,11 +160,14 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
-        Msg.announce("&a%s", event.getBlock().getType());
+        if (event.getPlayer().getGameMode() != GameMode.CREATIVE) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
+        if (plugin.getGame() == null) return;
         if (event.getHand() != EquipmentSlot.HAND) return;
         switch (event.getAction()) {
         case RIGHT_CLICK_BLOCK:
@@ -177,6 +181,7 @@ public final class EventListener implements Listener {
     }
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        if (plugin.getGame() == null) return;
         if (plugin.getGame().tryUseItemInHand(event.getPlayer())) {
             event.setCancelled(true);
         }
@@ -184,6 +189,7 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
+        if (plugin.getGame() == null) return;
         if (plugin.getGame().tryUseItemInHand(event.getPlayer())) {
             event.setCancelled(true);
         }
@@ -191,6 +197,7 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onPistonExtend(BlockPistonExtendEvent event) {
+        if (plugin.getGame() == null) return;
         if (plugin.getGame().isDisallowPistons()) event.setCancelled(true);
     }
 
@@ -210,6 +217,7 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onProjectileCollide(ProjectileCollideEvent event) {
+        if (plugin.getGame() == null) return;
         Projectile proj = event.getEntity();
         if (!(proj instanceof Snowball)) return;
         Entity target = event.getCollidedWith();

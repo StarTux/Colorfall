@@ -3,7 +3,6 @@ package io.github.feydk.colorfall;
 import io.github.feydk.colorfall.util.Msg;;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
@@ -72,9 +71,9 @@ public final class GameScoreboard {
     }
 
     public void updatePlayers() {
-        for (OfflinePlayer player : board.getPlayers()) {
-            if (!player.isOnline()) {
-                board.resetScores(player);
+        for (String entry : board.getEntries()) {
+            if (Bukkit.getPlayerExact(entry) == null) {
+                board.resetScores(entry);
             }
         }
     }
