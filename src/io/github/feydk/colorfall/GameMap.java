@@ -164,10 +164,8 @@ public final class GameMap {
 
     public Location dealSpawnLocation() {
         if (spawnLocations.isEmpty()) {
-            if (game.debug) {
-                game.getPlugin().getLogger().warning("No [SPAWN] points were set. Falling back to world spawn.");
-                game.debugStrings.add("No [SPAWN] points were set.");
-            }
+            game.getPlugin().getLogger().warning("No [SPAWN] points were set. Falling back to world spawn.");
+            game.debugStrings.add("No [SPAWN] points were set.");
             return world.getSpawnLocation();
         }
         if (!spawnLocationsRandomized) {
@@ -344,24 +342,20 @@ public final class GameMap {
         int numberOfColors = colorPool.size();
         if (numberOfColors == 0 || numberOfBlocks == 0) {
             game.denyStart = true;
-            if (game.debug) {
-                game.getPlugin().getLogger().warning("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
-                if (numberOfBlocks == 0) {
-                    game.debugStrings.add("No [BLOCK] blocks were configured.");
-                }
-                if (numberOfColors == 0) {
-                    game.debugStrings.add("No [COLOR] blocks were configured.");
-                }
+            game.getPlugin().getLogger().warning("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
+            if (numberOfBlocks == 0) {
+                game.debugStrings.add("No [BLOCK] blocks were configured.");
+            }
+            if (numberOfColors == 0) {
+                game.debugStrings.add("No [COLOR] blocks were configured.");
             }
             return;
         }
         // Need to have exactly two boundaries.
         if (boundaries.size() > 0 && boundaries.size() != 2) {
             game.denyStart = true;
-            if (game.debug) {
-                game.getPlugin().getLogger().warning("Map boundaries misconfigured. Skipping the part that replaces blocks in the map");
-                game.debugStrings.add("There must be two and only two [BOUNDARY] signs.");
-            }
+            game.getPlugin().getLogger().warning("Map boundaries misconfigured. Skipping the part that replaces blocks in the map");
+            game.debugStrings.add("There must be two and only two [BOUNDARY] signs.");
             return;
         }
         int ofEachColor = numberOfBlocks / numberOfColors;

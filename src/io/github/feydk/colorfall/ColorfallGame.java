@@ -49,7 +49,7 @@ public final class ColorfallGame {
     private String mapID = "Classic";
     boolean debug = false;
     // Debug stuff.
-    protected final List<String> debugStrings = new ArrayList<>();;
+    protected final List<String> debugStrings = new ArrayList<>();
     protected boolean denyStart = false;
     private boolean moreThanOnePlayed;
     private GamePlayer winner;
@@ -658,6 +658,9 @@ public final class ColorfallGame {
             world.setGameRuleValue("doDaylightCycle", "false");
         } else {
             world.setGameRuleValue("doDaylightCycle", "true");
+        }
+        for (String debugString : debugStrings) {
+            plugin.getLogger().warning(debugString);
         }
     }
 
