@@ -48,11 +48,12 @@ public final class ColorfallAdminCommand implements TabExecutor {
             .description("Stop the game")
             .playerCaller(this::stop);
         rootNode.addChild("item").arguments("<item>")
-            .completableList(Arrays.asList("SpecialDye"))
+            .completableList(List.of("SpecialDye"))
             .description("Spawn an item")
             .playerCaller(this::item);
-        rootNode.addChild("event").denyTabCompletion()
-            .description("Toggle event mode")
+        rootNode.addChild("event").arguments("<value>")
+            .completableList(List.of("true", "false"))
+            .description("Set event mode")
             .senderCaller(this::event);
         rootNode.addChild("next").arguments("<worlds...>")
             .completableList(ctx -> plugin.getWorldNames())
@@ -152,16 +153,22 @@ public final class ColorfallAdminCommand implements TabExecutor {
     }
 
     boolean event(CommandSender sender, String[] args) {
-        if (args.length != 0) return false;
-        plugin.saveState.event = !plugin.saveState.event;
-        plugin.save();
+        if (args.length > 1) return false;
+        if (args.length == 1) {
+            try {
+                plugin.saveState.event = Boolean.parseBoolean(args[0]);
+                plugin.save();
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Illegal value: " + args[0]);
+            }
+        }
         sender.sendMessage("Event mode " + (plugin.saveState.event ? "enabled" : "disabled"));
         return true;
     }
 
     boolean next(CommandSender sender, String[] args) {
         plugin.saveState.worlds.clear();
-        plugin.saveState.worlds.addAll(Arrays.asList(args));
+        plugin.saveState.worlds.addAll(List.of(args));
         plugin.save();
         sender.sendMessage("Next worlds set: " + plugin.saveState.worlds);
         return true;
