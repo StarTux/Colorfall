@@ -25,6 +25,8 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -241,6 +243,16 @@ public final class EventListener implements Listener {
     @EventHandler
     void onBlockExplode(BlockExplodeEvent event) {
         event.blockList().clear();
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    void onHangingBreak(HangingBreakEvent event) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
         event.setCancelled(true);
     }
 }

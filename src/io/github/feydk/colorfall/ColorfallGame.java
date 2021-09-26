@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Difficulty;
@@ -60,6 +61,7 @@ public final class ColorfallGame {
     private ColorBlock currentColor;
     private List<Block> paintedBlocks = new ArrayList<Block>();
     private boolean obsolete = false;
+    @Setter private boolean test = false;
 
     void enable() {
     }
@@ -112,7 +114,7 @@ public final class ColorfallGame {
             // There will only be picked a winner if there were
             // more than one player playing. Meaning that a SP
             // game shouldn't be rewarded with a win.
-            if (aliveCount == 1 && survivor != null && moreThanOnePlayed) {
+            if ((!test && aliveCount == 1) && survivor != null && moreThanOnePlayed) {
                 // Consider this scenario: 2 players left
                 // alive, both with 1 life left.  Both of them
                 // falls about at the same time, but one

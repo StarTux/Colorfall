@@ -168,7 +168,8 @@ public final class ColorfallPlugin extends JavaPlugin {
             ticksWaiting = 0;
             return;
         }
-        if (players.size() < 2) {
+        boolean test = game != null && game.isTest();
+        if (!test && players.size() < 2) {
             bossBar.setTitle(ChatColor.LIGHT_PURPLE + "Waiting for players...");
             ticksWaiting = 0;
             return;

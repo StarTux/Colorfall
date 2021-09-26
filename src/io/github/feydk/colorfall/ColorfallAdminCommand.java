@@ -38,6 +38,11 @@ public final class ColorfallAdminCommand implements TabExecutor {
             .description("Start a map")
             .arguments("<name>")
             .playerCaller(this::map);
+        rootNode.addChild("test")
+            .completableList(ctx -> plugin.getWorldNames())
+            .description("Test a map")
+            .arguments("<name>")
+            .playerCaller(this::test);
         rootNode.addChild("stop")
             .completableList(ctx -> plugin.getWorldNames())
             .description("Stop the game")
@@ -97,6 +102,27 @@ public final class ColorfallAdminCommand implements TabExecutor {
         game.loadMap(name);
         game.bringAllPlayers();
         game.setState(GameState.COUNTDOWN_TO_START);
+        return true;
+    }
+
+    boolean test(Player player, String[] args) {
+        if (args.length != 1) return false;
+        String name = args[0];
+        List<String> names = plugin.getWorldNames();
+        if (name.equals("random")) {
+            Random random = ThreadLocalRandom.current();
+            name = names.get(random.nextInt(names.size()));
+        }
+        if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
+            throw new CommandWarn("Another map is already playing!");
+        }
+        player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
+        ColorfallGame game = new ColorfallGame(plugin);
+        plugin.setGame(game);
+        game.loadMap(name);
+        game.bringAllPlayers();
+        game.setState(GameState.COUNTDOWN_TO_START);
+        game.setTest(true);
         return true;
     }
 
