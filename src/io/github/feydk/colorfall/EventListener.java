@@ -157,7 +157,10 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        event.setCancelled(true);
+        event.setFoodLevel(20);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+                event.getEntity().setSaturation(20.0f);
+            });
     }
 
     @EventHandler
