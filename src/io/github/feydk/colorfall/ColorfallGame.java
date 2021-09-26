@@ -141,6 +141,7 @@ public final class ColorfallGame {
                                                               "Pastel",
                                                               "Spectral");
                                 String cmd = "titles unlockset " + winner.getName() + " " + String.join(" ", titles);
+                                plugin.getLogger().info("Running command: " + cmd);
                                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
                             }
                         }
