@@ -135,7 +135,13 @@ public final class ColorfallGame {
                             survivor.setEndTime(new Date());
                             newState = GameState.END;
                             if (plugin.saveState.event) {
-                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "titles unlockset " + winner.getName() + " Colorful Technicolor Prismatic Pastel");
+                                List<String> titles = List.of("Colorful",
+                                                              "Technicolor",
+                                                              "Prismatic",
+                                                              "Pastel",
+                                                              "Spectral");
+                                String cmd = "titles unlockset " + winner.getName() + " " + String.join(" ", titles);
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
                             }
                         }
                     }
