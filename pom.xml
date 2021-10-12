@@ -14,16 +14,16 @@
   </properties>
   <repositories>
 
-    <!-- Spigot Repo -->
-    <repository>
-      <id>papermc</id>
-      <url>https://papermc.io/repo/repository/maven-public/</url>
-    </repository>
-
     <!-- Cavetale Repo -->
     <repository>
       <id>cavetale</id>
       <url>https://cavetale.com/jenkins/plugin/repository/everything/</url>
+    </repository>
+
+    <!-- Spigot Repo -->
+    <repository>
+      <id>papermc</id>
+      <url>https://papermc.io/repo/repository/maven-public/</url>
     </repository>
 
   </repositories>
@@ -33,9 +33,8 @@
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
-      <version>1.17-R0.1-SNAPSHOT</version>
+      <version>1.17.1-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- SQL -->
@@ -65,18 +64,6 @@
   </dependencies>
   <build>
     <finalName>${project.name}</finalName>
-    <sourceDirectory>src</sourceDirectory>
-    <resources>
-      <resource>
-        <directory></directory>
-        <includes>
-          <include>plugin.yml</include>
-          <include>config.yml</include>
-          <include>powerups.yml</include>
-          <include>rounds.yml</include>
-        </includes>
-      </resource>
-    </resources>
     <plugins>
 
       <plugin>
