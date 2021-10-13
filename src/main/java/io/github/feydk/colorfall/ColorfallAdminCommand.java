@@ -3,23 +3,22 @@ package io.github.feydk.colorfall;
 import com.cavetale.core.command.CommandContext;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
-import io.github.feydk.colorfall.util.Msg;;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.hover.content.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 @RequiredArgsConstructor
 public final class ColorfallAdminCommand implements TabExecutor {
@@ -73,16 +72,18 @@ public final class ColorfallAdminCommand implements TabExecutor {
 
     boolean maps(Player player, String[] args) {
         if (args.length != 0) return false;
-        ComponentBuilder cb = new ComponentBuilder();
-        List<String> names = plugin.getWorldNames();
-        cb.append(names.size() + " maps:").color(ChatColor.AQUA);
-        for (String name : names) {
-            cb.append(" ").reset();
-            cb.append("[" + name + "]").color(ChatColor.GOLD)
-                .event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(name)))
-                .event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cfa map " + name));
+        List<Component> components = new ArrayList<>();
+        for (String name : plugin.getWorldNames()) {
+            components.add(Component.text("[" + name + "]", NamedTextColor.GOLD)
+                           .hoverEvent(HoverEvent.showText(Component.text(name)))
+                           .clickEvent(ClickEvent.runCommand("/cfa map " + name)));
         }
-        player.sendMessage(cb.create());
+        Component msg = Component.join(JoinConfiguration.builder()
+                                       .prefix(Component.text(components.size() + " maps: ", NamedTextColor.AQUA))
+                                       .separator(Component.space())
+                                       .build(),
+                                       components);
+        player.sendMessage(msg);
         return true;
     }
 
@@ -97,7 +98,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
+        player.sendMessage(Component.text("Loading map: " + name, NamedTextColor.YELLOW));
         ColorfallGame game = new ColorfallGame(plugin);
         plugin.setGame(game);
         game.loadMap(name);
@@ -117,7 +118,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        player.sendMessage(ChatColor.YELLOW + "Loading map: " + name);
+        player.sendMessage(Component.text("Loading map: " + name, NamedTextColor.YELLOW));
         ColorfallGame game = new ColorfallGame(plugin);
         plugin.setGame(game);
         game.loadMap(name);
@@ -138,17 +139,17 @@ public final class ColorfallAdminCommand implements TabExecutor {
         String key = args[0];
         ItemStack stack = plugin.getPowerups().get(key);
         if (args[0].equals("SpecialDye")) {
-            ColorBlock cb = plugin.getGame().getGameMap().getRandomFromColorPool();
-            ItemStack newStack = new ItemStack(cb.blockData.getMaterial());
-            ItemMeta meta = newStack.getItemMeta();
-            meta.setLore(stack.getItemMeta().getLore());
-            meta.setDisplayName(stack.getItemMeta().getDisplayName());
-            newStack.setItemMeta(meta);
+            BlockData blockData = plugin.getGame().getGameMap().getRandomFromColorPool();
+            ItemStack newStack = new ItemStack(blockData.getMaterial());
+            newStack.editMeta(meta -> {
+                    meta.lore(stack.getItemMeta().lore());
+                    meta.displayName(stack.getItemMeta().displayName());
+                });
             player.getInventory().addItem(newStack);
         } else {
             player.getInventory().addItem(stack);
         }
-        Msg.send(player, " &eGiven item %s", key);
+        player.sendMessage(Component.text("Given item " + key, NamedTextColor.YELLOW));
         return true;
     }
 

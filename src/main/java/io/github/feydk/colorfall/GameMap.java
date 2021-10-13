@@ -12,8 +12,10 @@ import java.util.Random;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Value;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -29,16 +31,15 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.util.Vector;
 
 @Getter
 public final class GameMap {
     // The blocks to replace with colors (placeholder blocks).
-    private Set<ColorBlock> coloredBlocks = new HashSet<ColorBlock>();
+    private Set<BlockData> coloredBlocks = new HashSet<BlockData>();
     // The list of possible colors for the map.
-    private List<ColorBlock> colorPool = new ArrayList<ColorBlock>();
+    private List<BlockData> colorPool = new ArrayList<BlockData>();
     // A list of blocks that have been replaced. Ie. the blocks you stand on.
     private List<Block> replacedBlocks = new ArrayList<>();
 
@@ -81,7 +82,7 @@ public final class GameMap {
         return lockTime;
     }
 
-    public ColorBlock getRandomFromColorPool() {
+    public BlockData getRandomFromColorPool() {
         Random r = new Random(System.currentTimeMillis());
         return colorPool.get(r.nextInt(colorPool.size()));
     }
@@ -114,11 +115,13 @@ public final class GameMap {
         return "";
     }
 
-    public void animateBlocks(ColorBlock currentColor) {
+    public void animateBlocks(BlockData currentColor) {
         for (Block b : replacedBlocks) {
-            if (b.getType() != Material.AIR && b.getBlockData().equals(currentColor.blockData)) {
-                Color color = Color.fromBlockData(currentColor.blockData);
-                world.spawnParticle(Particle.REDSTONE, b.getLocation().add(.5, 1.5, .5), 5, .5f, .5f, .5f, .01f, new Particle.DustOptions(color.toBukkitColor(), 1.0f));
+            if (b.getType() != Material.AIR && b.getBlockData().equals(currentColor)) {
+                Color color = Color.fromBlockData(currentColor);
+                world.spawnParticle(Particle.REDSTONE, b.getLocation().add(.5, 1.5, .5),
+                                    5, .5f, .5f, .5f, .01f,
+                                    new Particle.DustOptions(color.toBukkitColor(), 1.0f));
             }
         }
     }
@@ -128,10 +131,10 @@ public final class GameMap {
         highlightEntities.clear();
     }
 
-    public void highlightBlocks(ColorBlock currentColor) {
+    public void highlightBlocks(BlockData currentColor) {
         for (Block b : replacedBlocks) {
             ArmorStand armorStand = highlightEntities.get(b);
-            if (b.getType() == Material.AIR || !b.getBlockData().equals(currentColor.blockData)) {
+            if (b.getType() == Material.AIR || !b.getBlockData().equals(currentColor)) {
                 if (armorStand != null) {
                     armorStand.remove();
                     highlightEntities.remove(b);
@@ -146,7 +149,7 @@ public final class GameMap {
                     e.setCanTick(false);
                     e.setMarker(true);
                     e.setVisible(false);
-                    e.setHelmet(new ItemStack(currentColor.blockData.getMaterial()));
+                    e.getEquipment().setHelmet(new ItemStack(currentColor.getMaterial()));
                 });
             highlightEntities.put(b, armorStand);
         }
@@ -154,8 +157,8 @@ public final class GameMap {
 
     public boolean isColoredBlock(Block block) {
         if (block == null) return false;
-        for (ColorBlock cb : colorPool) {
-            if (cb.blockData.equals(block.getBlockData())) {
+        for (BlockData blockData : colorPool) {
+            if (blockData.equals(block.getBlockData())) {
                 return true;
             }
         }
@@ -249,20 +252,28 @@ public final class GameMap {
                 } else {
                     continue;
                 }
-                String firstLine = signBlock.getLine(0).toLowerCase();
+                List<String> lines = new ArrayList<>();
+                for (Component line : signBlock.lines()) {
+                    lines.add(PlainTextComponentSerializer.plainText().serialize(line));
+                }
+                String firstLine = lines.get(0);
                 if (firstLine != null && firstLine.startsWith("[") && firstLine.endsWith("]")) {
-                    // A sign with [BLOCK] defines that this block is a valid color block in the map. These are the blocks that will be replaced with a block from the color pool.
+                    // A sign with [BLOCK] defines that this block is
+                    // a valid color block in the map. These are the
+                    // blocks that will be replaced with a block from
+                    // the color pool.
                     if (firstLine.equals("[block]")) {
-                        ColorBlock cb = new ColorBlock();
-                        cb.blockData = attachedBlock.getBlockData();
-                        coloredBlocks.add(cb);
+                        BlockData data = attachedBlock.getBlockData();
+                        coloredBlocks.add(data);
                         state.getBlock().setType(Material.AIR);
                         attachedBlock.setType(Material.AIR);
-                        // A sign with [COLOR] defines that this block goes into the color pool. These are the colors that players will have to find and stand on during the game.
+                        // A sign with [COLOR] defines that this block
+                        // goes into the color pool. These are the
+                        // colors that players will have to find and
+                        // stand on during the game.
                     } else if (firstLine.equals("[color]")) {
-                        ColorBlock cb = new ColorBlock();
-                        cb.blockData = attachedBlock.getBlockData();
-                        colorPool.add(cb);
+                        BlockData data = attachedBlock.getBlockData();
+                        colorPool.add(data);
                         state.getBlock().setType(Material.AIR);
                         attachedBlock.setType(Material.AIR);
                         // Spawn locations.
@@ -281,7 +292,7 @@ public final class GameMap {
                         // Credits.
                     } else if (firstLine.equals("[credits]")) {
                         for (int i = 1; i < 4; ++i) {
-                            String credit = signBlock.getLine(i);
+                            String credit = lines.get(i);
                             if (credit != null && !credit.isEmpty()) {
                                 credits.add(credit);
                             }
@@ -290,14 +301,14 @@ public final class GameMap {
                         //attachedBlock.setType(Material.AIR);
                         // Time.
                     } else if (firstLine.equals("[time]")) {
-                        String t = signBlock.getLine(1);
+                        String t = lines.get(1);
                         if (t != null && !t.isEmpty()) {
                             try {
                                 time = Integer.parseInt(t);
                             } catch (NumberFormatException e) { }
                         }
                         if (time > -1) {
-                            String l = signBlock.getLine(2);
+                            String l = lines.get(2);
                             if (l != null && !l.isEmpty()) {
                                 if (l.toLowerCase().equals("lock")) lockTime = true;
                             }
@@ -318,8 +329,8 @@ public final class GameMap {
                 for (int cz = 0; cz < 16; cz++) {
                     Block b = chunk.getBlock(cx, cy, cz);
                     // Check if b (a block in the chunk) is the same type as any of the colored blocks that needs to be replaced and add it to the list if so.
-                    COLOR_BLOCKS: for (ColorBlock block : coloredBlocks) {
-                        if (b.getBlockData().equals(block.blockData)) {
+                    COLOR_BLOCKS: for (BlockData blockData : coloredBlocks) {
+                        if (b.getBlockData().equals(blockData)) {
                             replacedBlocks.add(b);
                             break COLOR_BLOCKS;
                         }
@@ -362,11 +373,11 @@ public final class GameMap {
         // Shuffle the list of blocks a bit to get some randomization.
         Collections.shuffle(replacedBlocks);
         int count = 0;
-        for (ColorBlock color : colorPool) {
+        for (BlockData color : colorPool) {
             for (int i = 1; i <= ofEachColor; i++) {
                 // Color the next block.
                 Block toColor = replacedBlocks.get(count);
-                toColor.setBlockData(color.blockData, false);
+                toColor.setBlockData(color, false);
                 count++;
             }
         }
@@ -375,16 +386,16 @@ public final class GameMap {
             Random r = new Random(System.currentTimeMillis());
             for (int i = count; i < numberOfBlocks; i++) {
                 // Pick a random color.
-                ColorBlock color = colorPool.get(r.nextInt(numberOfColors));
+                BlockData color = colorPool.get(r.nextInt(numberOfColors));
                 Block toColor = replacedBlocks.get(i);
-                toColor.setBlockData(color.blockData, false);
+                toColor.setBlockData(color, false);
                 count++;
             }
         }
     }
 
     // Remove blocks that are not the currently active color.
-    public void removeBlocks(ColorBlock currentColor) {
+    public void removeBlocks(BlockData currentColor) {
         removedBlocksSolid.clear();
         removedBlocksUnsolid.clear();
         // I know, I know. Point has X and Y which is conceptually totally wrong in this context since Y is actually the Z coordinate, but it works ;)
@@ -400,7 +411,7 @@ public final class GameMap {
                         if (boundaries.size() > 0) {
                             isOk = isBlockWithinCuboid(b);
                         }
-                        if (isOk && b.getType() != Material.AIR && !(b.getBlockData().equals(currentColor.blockData))) {
+                        if (isOk && b.getType() != Material.AIR && !(b.getBlockData().equals(currentColor))) {
                             removedBlocksUnsolid.add(b.getState());
                             b.setType(Material.AIR, false);
                         }
@@ -412,7 +423,7 @@ public final class GameMap {
                         if (boundaries.size() > 0) {
                             isOk = isBlockWithinCuboid(b);
                         }
-                        if (isOk && b.getType() != Material.AIR && !(b.getBlockData().equals(currentColor.blockData))) {
+                        if (isOk && b.getType() != Material.AIR && !(b.getBlockData().equals(currentColor))) {
                             removedBlocksSolid.add(b.getState());
                             b.setType(Material.AIR, false);
                         }
@@ -460,23 +471,16 @@ public final class GameMap {
     }
 
     public ItemStack getDye() {
-        ColorBlock cb = getRandomFromColorPool();
-        Color color = Color.fromBlockData(cb.blockData);
-
+        BlockData data = getRandomFromColorPool();
+        Color color = Color.fromBlockData(data);
         ItemStack newStack = new ItemStack(color.getDyeMaterial());
-        ItemMeta meta = newStack.getItemMeta();
-
-        List<String> lore = new ArrayList<String>();
-        lore.add(ChatColor.DARK_AQUA + "Turn a colored block");
-        lore.add(ChatColor.DARK_AQUA + "into this color.");
-        lore.add(ChatColor.DARK_AQUA + "The block will reset");
-        lore.add(ChatColor.DARK_AQUA + "when the round is over.");
-
-        meta.setLore(lore);
-        meta.setDisplayName(color.toChatColor() + color.niceName);
-
-        newStack.setItemMeta(meta);
-
+        newStack.editMeta(meta -> {
+                meta.displayName(Component.text(color.niceName, color.toTextColor()));
+                meta.lore(List.of(Component.text("Turn a colored block", NamedTextColor.GRAY),
+                                  Component.text("into this color.", NamedTextColor.GRAY),
+                                  Component.text("The block will reset", NamedTextColor.GRAY),
+                                  Component.text("when the round is over.", NamedTextColor.GRAY)));
+            });
         return newStack;
     }
 

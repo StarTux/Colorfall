@@ -1,8 +1,15 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.sidebar.PlayerSidebarEvent;
+import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -53,7 +60,6 @@ public final class EventListener implements Listener {
         }
         GamePlayer gp = plugin.getGamePlayer(player);
         gp.setDisconnectedTicks(0);
-        plugin.getScoreboard().addPlayer(player);
         if (gp.isSpectator()) {
             gp.setSpectator();
             return;
@@ -239,7 +245,7 @@ public final class EventListener implements Listener {
         if (proj.getShooter() instanceof Player) {
             Player launcher = (Player) proj.getShooter();
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
-            victim.sendMessage(ChatColor.RED + launcher.getName() + " hit you with a snowball");
+            victim.sendMessage(Component.text(launcher.getName() + " hit you with a snowball", NamedTextColor.RED));
         }
     }
 
@@ -257,5 +263,39 @@ public final class EventListener implements Listener {
     @EventHandler
     void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
         event.setCancelled(true);
+    }
+
+    @EventHandler
+    protected void onPlayerSidebar(PlayerSidebarEvent event) {
+        if (plugin.game == null || plugin.game.obsolete) return;
+        List<Component> lines = new ArrayList<>();
+        switch (plugin.game.state) {
+        case WAIT_FOR_PLAYERS:
+            lines.add(Component.text("Waiting", NamedTextColor.GREEN));
+            break;
+        case COUNTDOWN_TO_START:
+            lines.add(Component.text("Get ready.. " + plugin.game.secondsLeft, NamedTextColor.GREEN));
+            break;
+        case STARTED:
+            lines.add(Component.text("Round " + plugin.game.currentRoundIdx + " " + plugin.game.secondsLeft,
+                                     NamedTextColor.GREEN));
+            break;
+        case END:
+            lines.add(Component.text("Game Over " + plugin.game.secondsLeft, NamedTextColor.RED));
+            break;
+        default: break;
+        }
+        List<GamePlayer> gamePlayers = new ArrayList<>(plugin.gamePlayers.values());
+        gamePlayers.removeIf(gp -> !gp.isPlayer());
+        Collections.sort(gamePlayers, (a, b) -> Integer.compare(b.livesLeft, a.livesLeft));
+        for (GamePlayer gamePlayer : gamePlayers) {
+            Player player = gamePlayer.getPlayer();
+            lines.add(Component.join(JoinConfiguration.noSeparators(), new Component[] {
+                        Component.text(gamePlayer.livesLeft, NamedTextColor.GOLD),
+                        Component.space(),
+                        (player != null ? player.displayName() : Component.text(gamePlayer.name)),
+                    }));
+        }
+        event.add(plugin, Priority.HIGHEST, lines);
     }
 }

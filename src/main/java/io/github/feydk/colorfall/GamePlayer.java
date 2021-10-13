@@ -3,43 +3,43 @@ package io.github.feydk.colorfall;
 import java.util.Date;
 import java.util.UUID;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor @Getter @Setter
 public final class GamePlayer {
-    private final ColorfallPlugin plugin;
-    private final UUID uuid;
-    boolean hasJoinedBefore = false;
-    private PlayerType type;
-    private String name;
-    private boolean isAlive = true;
-    private long lastDeath;
-    private long disconnectedTics;
-    private boolean statsRecorded;
-    private boolean didPlay = false;
-    private boolean diedThisRound = false;
-    private Location spawnLocation;
+    protected final ColorfallPlugin plugin;
+    protected final UUID uuid;
+    protected boolean hasJoinedBefore = false;
+    protected PlayerType type;
+    protected String name;
+    protected boolean isAlive = true;
+    protected long lastDeath;
+    protected long disconnectedTics;
+    protected boolean statsRecorded;
+    protected boolean didPlay = false;
+    protected boolean diedThisRound = false;
+    protected Location spawnLocation;
     // Player stats and highscore stuff.
-    private boolean winner = false;
-    private Date startTime;
-    private Date endTime;
-    private int roundsPlayed = 0;
-    private int roundsSurvived = 0;
-    private int deaths = 0;
-    private int livesLeft;
-    private boolean superior = false;
-    private int dyesUsed = 0;
-    private int randomizersUsed = 0;
-    private int clocksUsed = 0;
-    private int enderpearlsUsed = 0;
-    private int snowballsUsed = 0;
-    private int snowballsHit = 0;
-
-    Location immobileLocation;
+    protected boolean winner = false;
+    protected Date startTime;
+    protected Date endTime;
+    protected int roundsPlayed = 0;
+    protected int roundsSurvived = 0;
+    protected int deaths = 0;
+    protected int livesLeft;
+    protected boolean superior = false;
+    protected int dyesUsed = 0;
+    protected int randomizersUsed = 0;
+    protected int clocksUsed = 0;
+    protected int enderpearlsUsed = 0;
+    protected int snowballsUsed = 0;
+    protected int snowballsHit = 0;
+    protected Location immobileLocation;
 
     public enum PlayerType {
         PLAYER,
@@ -59,7 +59,7 @@ public final class GamePlayer {
     // Set player as participant.
     public void setPlayer() {
         type = PlayerType.PLAYER;
-        Player player = plugin.getServer().getPlayer(uuid);
+        Player player = getPlayer();
         if (player != null) {
             player.setGameMode(GameMode.ADVENTURE);
         }
@@ -69,7 +69,7 @@ public final class GamePlayer {
     // Set player as spectator.
     public void setSpectator() {
         type = PlayerType.SPECTATOR;
-        Player player = plugin.getServer().getPlayer(uuid);
+        Player player = getPlayer();
         if (player != null) {
             player.setGameMode(GameMode.SPECTATOR);
         }
@@ -86,10 +86,6 @@ public final class GamePlayer {
     // Set amount of lives. Note: should only be called once when the game starts.
     public void setLives(int lives) {
         this.livesLeft = lives;
-        Player player = plugin.getServer().getPlayer(uuid);
-        if (player != null) {
-            plugin.getScoreboard().setPlayerScore(player, lives);
-        }
     }
 
     public boolean isAlive() {
@@ -105,16 +101,14 @@ public final class GamePlayer {
         if (livesLeft > 0) {
             livesLeft--;
         }
-        Player player = plugin.getServer().getPlayer(uuid);
+        Player player = getPlayer();
         if (livesLeft == 0) {
             isAlive = false;
             // To avoid having spectators holding stuff in their hand.
             player.getInventory().clear();
             setSpectator();
-            plugin.getScoreboard().setPlayerEliminated(player);
             plugin.getGame().onPlayerElimination(player);
         } else {
-            plugin.getScoreboard().setPlayerScore(player, livesLeft);
             plugin.getGame().onPlayerDeath(player);
         }
     }
@@ -186,5 +180,9 @@ public final class GamePlayer {
 
     public int getLivesLeft() {
         return livesLeft;
+    }
+
+    public Player getPlayer() {
+        return Bukkit.getPlayer(uuid);
     }
 }

@@ -2,7 +2,7 @@ package io.github.feydk.colorfall;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
@@ -76,26 +76,8 @@ public enum Color {
         return Color.valueOf(name);
     }
 
-    ChatColor toChatColor() {
-        switch (this) {
-        case BLACK: return ChatColor.BLACK;
-        case BLUE: return ChatColor.DARK_BLUE;
-        case BROWN: return ChatColor.GOLD; // Close enough!?
-        case CYAN: return ChatColor.DARK_AQUA;
-        case GRAY: return ChatColor.DARK_GRAY;
-        case GREEN: return ChatColor.DARK_GREEN;
-        case LIGHT_BLUE: return ChatColor.BLUE;
-        case LIGHT_GRAY: return ChatColor.GRAY;
-        case LIME: return ChatColor.GREEN;
-        case MAGENTA: return ChatColor.LIGHT_PURPLE;
-        case ORANGE: return ChatColor.GOLD;
-        case PINK: return ChatColor.RED;
-        case PURPLE: return ChatColor.DARK_PURPLE;
-        case RED: return ChatColor.DARK_RED;
-        case WHITE: return ChatColor.WHITE;
-        case YELLOW: return ChatColor.YELLOW;
-        default: return ChatColor.MAGIC;
-        }
+    TextColor toTextColor() {
+        return TextColor.color(toBukkitColor().asRGB());
     }
 
     /**

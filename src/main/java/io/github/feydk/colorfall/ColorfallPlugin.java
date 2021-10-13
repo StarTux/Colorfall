@@ -1,6 +1,5 @@
 package io.github.feydk.colorfall;
 
-import com.winthier.sql.SQLDatabase;
 import io.github.feydk.colorfall.util.Json;
 import java.io.File;
 import java.util.ArrayList;
@@ -11,11 +10,10 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.bossbar.BossBar;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -25,31 +23,27 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 @Getter
 public final class ColorfallPlugin extends JavaPlugin {
-    private final Map<String, ItemStack> powerups = new HashMap<String, ItemStack>();
-    private final Map<Integer, Round> rounds = new HashMap<Integer, Round>();
-    private final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
+    protected final Map<String, ItemStack> powerups = new HashMap<String, ItemStack>();
+    protected final Map<Integer, Round> rounds = new HashMap<Integer, Round>();
+    protected final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
     // Config stuff.
-    private int disconnectLimit;
-    private int waitForPlayersDuration;
-    private int countdownToStartDuration;
-    private int startedDuration;
-    private int endDuration;
-    private int lives;
-    private List<String> worldNames;
-    //final Highscore highscore = new Highscore();
-    private GameScoreboard scoreboard;
-    private SQLDatabase db;
-    private BossBar bossBar;
+    protected int disconnectLimit;
+    protected int waitForPlayersDuration;
+    protected int countdownToStartDuration;
+    protected int startedDuration;
+    protected int endDuration;
+    protected int lives;
+    protected List<String> worldNames;
+    protected BossBar bossBar;
     //
-    @Setter private ColorfallGame game;
+    @Setter protected ColorfallGame game;
     protected SaveState saveState;
-    private int ticksWaiting;
+    protected int ticksWaiting;
 
     @Override
     public void onEnable() {
         new ColorfallAdminCommand(this).enable();
         new ColorfallCommand(this).enable();
-        db = new SQLDatabase(this);
         reloadConfig();
         saveDefaultConfig();
         saveResource("powerups.yml", false);
@@ -58,8 +52,8 @@ public final class ColorfallPlugin extends JavaPlugin {
         // Retiring the config value for now.
         Bukkit.getScheduler().runTaskTimer(this, this::tick, 1, 1);
         getServer().getPluginManager().registerEvents(new EventListener(this), this);
-        bossBar = getServer().createBossBar("Colorfall", BarColor.BLUE, BarStyle.SOLID);
-        scoreboard = new GameScoreboard();
+        bossBar = BossBar.bossBar(Component.text("Colorfall"), 0.0f,
+                                  BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
         loadSave();
         for (Player player : getServer().getOnlinePlayers()) {
             enter(player);
@@ -88,13 +82,11 @@ public final class ColorfallPlugin extends JavaPlugin {
     }
 
     public void enter(Player player) {
-        scoreboard.addPlayer(player);
-        bossBar.addPlayer(player);
+        player.showBossBar(bossBar);
     }
 
     public void exit(Player player) {
-        scoreboard.removePlayer(player);
-        bossBar.removePlayer(player);
+        player.hideBossBar(bossBar);
     }
 
     void loadConf() {
@@ -109,7 +101,7 @@ public final class ColorfallPlugin extends JavaPlugin {
         loadRounds();
     }
 
-    private void loadPowerups() {
+    protected void loadPowerups() {
         powerups.clear();
         ConfigurationSection config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "powerups.yml"));
         for (String key : config.getKeys(false)) {
@@ -122,7 +114,7 @@ public final class ColorfallPlugin extends JavaPlugin {
         }
     }
 
-    private void loadRounds() {
+    protected void loadRounds() {
         rounds.clear();
         ConfigurationSection config = YamlConfiguration.loadConfiguration(new File(getDataFolder(), "rounds.yml"));
         // Load root config nodes from. Each root node is valid for rounds until a new root node is found.
@@ -170,15 +162,15 @@ public final class ColorfallPlugin extends JavaPlugin {
         }
         boolean test = game != null && game.isTest();
         if (!test && players.size() < 2) {
-            bossBar.setTitle(ChatColor.LIGHT_PURPLE + "Waiting for players...");
+            bossBar.name(Component.text("Waiting for players...", NamedTextColor.LIGHT_PURPLE));
             ticksWaiting = 0;
             return;
         }
         if (game == null) {
             if (ticksWaiting < waitForPlayersDuration * 20) {
-                bossBar.setTitle(ChatColor.LIGHT_PURPLE + "Waiting for players...");
-                double progress = (double) ticksWaiting / (double) (waitForPlayersDuration * 20);
-                bossBar.setProgress(Math.max(0, Math.min(1, progress)));
+                bossBar.name(Component.text("Waiting for players...", NamedTextColor.LIGHT_PURPLE));
+                float progress = (float) ticksWaiting / (float) (waitForPlayersDuration * 20);
+                bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
                 ticksWaiting += 1;
                 return;
             } else {
