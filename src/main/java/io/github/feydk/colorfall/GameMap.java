@@ -254,7 +254,7 @@ public final class GameMap {
                 }
                 List<String> lines = new ArrayList<>();
                 for (Component line : signBlock.lines()) {
-                    lines.add(PlainTextComponentSerializer.plainText().serialize(line));
+                    lines.add(PlainTextComponentSerializer.plainText().serialize(line).toLowerCase());
                 }
                 String firstLine = lines.get(0);
                 if (firstLine != null && firstLine.startsWith("[") && firstLine.endsWith("]")) {
