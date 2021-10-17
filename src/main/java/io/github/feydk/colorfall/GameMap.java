@@ -66,7 +66,7 @@ public final class GameMap {
     private double maxX;
     private double maxZ;
     private double maxY;
-    private Map<Block, ArmorStand> highlightEntities = new HashMap<>();
+    private Map<Block, Entity> highlightEntities = new HashMap<>();
 
     public GameMap(final int chunkRadius, final ColorfallGame game, final World world) {
         this.world = world;
@@ -127,22 +127,23 @@ public final class GameMap {
     }
 
     public void clearHighlightBlocks() {
-        for (ArmorStand f : highlightEntities.values()) f.remove();
+        for (Entity e : highlightEntities.values()) e.remove();
         highlightEntities.clear();
     }
 
     public void highlightBlocks(BlockData currentColor) {
         for (Block b : replacedBlocks) {
-            ArmorStand armorStand = highlightEntities.get(b);
+            Entity entity = highlightEntities.get(b);
             if (b.getType() == Material.AIR || !b.getBlockData().equals(currentColor)) {
-                if (armorStand != null) {
-                    armorStand.remove();
+                if (entity != null) {
+                    entity.remove();
                     highlightEntities.remove(b);
                 }
                 continue;
             }
-            if (armorStand != null && armorStand.isValid()) continue;
-            armorStand = world.spawn(b.getLocation().add(0.5, -1.25, 0.5), ArmorStand.class, e -> {
+            if (entity != null && !entity.isDead()) continue;
+            entity = world.spawn(b.getLocation().add(0.5, -1.25, 0.5), ArmorStand.class, e -> {
+                    e.setPersistent(false);
                     e.setGlowing(true);
                     e.setGravity(false);
                     e.setCanMove(false);
@@ -151,7 +152,7 @@ public final class GameMap {
                     e.setVisible(false);
                     e.getEquipment().setHelmet(new ItemStack(currentColor.getMaterial()));
                 });
-            highlightEntities.put(b, armorStand);
+            highlightEntities.put(b, entity);
         }
     }
 
