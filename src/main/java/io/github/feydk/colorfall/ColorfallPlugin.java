@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.server.ServerPlugin;
 import io.github.feydk.colorfall.util.Json;
 import java.io.File;
 import java.util.ArrayList;
@@ -71,6 +72,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             game = null;
         }
         gamePlayers.clear();
+        ServerPlugin.getInstance().setServerSidebarLines(null);
     }
 
     void loadSave() {
@@ -158,6 +160,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             }
             gamePlayers.clear();
             ticksWaiting = 0;
+            ServerPlugin.getInstance().setServerSidebarLines(null);
             return;
         }
         boolean test = game != null && game.isTest();
@@ -172,6 +175,9 @@ public final class ColorfallPlugin extends JavaPlugin {
                 float progress = (float) ticksWaiting / (float) (waitForPlayersDuration * 20);
                 bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
                 ticksWaiting += 1;
+                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
+                                                                         Component.text(players.size() + " Waiting...",
+                                                                                        NamedTextColor.GRAY)));
                 return;
             } else {
                 loadPowerups();
@@ -203,6 +209,19 @@ public final class ColorfallPlugin extends JavaPlugin {
             if (oldMap != null) oldMap.cleanUp();
         }
         game.tick();
+        switch (game.getState()) {
+        case INIT:
+        case WAIT_FOR_PLAYERS:
+        case COUNTDOWN_TO_START:
+        case STARTED:
+            ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
+                                                                     Component.text("Playing", NamedTextColor.GRAY)));
+            break;
+        case END:
+            ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
+                                                                     Component.text("Game Over", NamedTextColor.GRAY)));
+        default: break;
+        }
     }
 
     public GamePlayer getGamePlayer(Player player) {
