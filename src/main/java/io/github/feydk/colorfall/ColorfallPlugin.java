@@ -170,7 +170,12 @@ public final class ColorfallPlugin extends JavaPlugin {
             return;
         }
         if (game == null) {
-            if (ticksWaiting < waitForPlayersDuration * 20) {
+            if (saveState.event) {
+                ticksWaiting = 0;
+                bossBar.name(Component.text("Preparing Event...", NamedTextColor.GREEN));
+                bossBar.progress(1.0f);
+                ServerPlugin.getInstance().setServerSidebarLines(null);
+            } else if (ticksWaiting < waitForPlayersDuration * 20) {
                 bossBar.name(Component.text("Waiting for players...", NamedTextColor.LIGHT_PURPLE));
                 float progress = (float) ticksWaiting / (float) (waitForPlayersDuration * 20);
                 bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
