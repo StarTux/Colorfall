@@ -209,18 +209,22 @@ public final class ColorfallPlugin extends JavaPlugin {
             if (oldMap != null) oldMap.cleanUp();
         }
         game.tick();
-        switch (game.getState()) {
-        case INIT:
-        case WAIT_FOR_PLAYERS:
-        case COUNTDOWN_TO_START:
-        case STARTED:
-            ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                     Component.text("Playing", NamedTextColor.GRAY)));
-            break;
-        case END:
-            ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                     Component.text("Game Over", NamedTextColor.GRAY)));
-        default: break;
+        if (game.isTest()) {
+            ServerPlugin.getInstance().setServerSidebarLines(null);
+        } else {
+            switch (game.getState()) {
+            case INIT:
+            case WAIT_FOR_PLAYERS:
+            case COUNTDOWN_TO_START:
+            case STARTED:
+                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
+                                                                         Component.text("Playing", NamedTextColor.GRAY)));
+                break;
+            case END:
+                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
+                                                                         Component.text("Game Over", NamedTextColor.GRAY)));
+            default: break;
+            }
         }
     }
 
