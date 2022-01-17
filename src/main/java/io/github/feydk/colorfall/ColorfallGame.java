@@ -654,7 +654,7 @@ public final class ColorfallGame {
         world.setStorm(false);
         WorldBorder worldBorder = world.getWorldBorder();
         worldBorder.setSize(8192);
-        gameMap = new GameMap(plugin.getConfig().getInt("general.chunkRadius"), this, world);
+        gameMap = new GameMap(worldName, this, world);
         gameMap.process();
         if (gameMap.getStartingTime() == -1) {
             world.setTime(1000L);

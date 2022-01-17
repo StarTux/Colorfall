@@ -51,10 +51,13 @@ public final class GameMap {
     private List<String> credits = new ArrayList<String>();
     private int time;
     private boolean lockTime;
+    private int creditSignsFound;
+    private int timeSignsFound;
 
     private World world;
     private ColorfallGame game;
-    private int chunkRadius;
+    private final String worldName;
+    private final int chunkRadius = 8;
     private boolean spawnLocationsRandomized;
     private int spawnLocationIter = 0;
 
@@ -68,9 +71,9 @@ public final class GameMap {
     private double maxY;
     private Map<Block, Entity> highlightEntities = new HashMap<>();
 
-    public GameMap(final int chunkRadius, final ColorfallGame game, final World world) {
+    public GameMap(final String worldName, final ColorfallGame game, final World world) {
+        this.worldName = worldName;
         this.world = world;
-        this.chunkRadius = chunkRadius;
         this.game = game;
     }
 
@@ -83,6 +86,7 @@ public final class GameMap {
     }
 
     public BlockData getRandomFromColorPool() {
+        if (colorPool.isEmpty()) return null;
         Random r = new Random(System.currentTimeMillis());
         return colorPool.get(r.nextInt(colorPool.size()));
     }
@@ -166,9 +170,17 @@ public final class GameMap {
         return false;
     }
 
+    private void warn(String msg) {
+        game.getPlugin().getLogger().warning("[" + worldName + "] " + msg);
+    }
+
+    private void info(String msg) {
+        game.getPlugin().getLogger().info("[" + worldName + "] " + msg);
+    }
+
     public Location dealSpawnLocation() {
         if (spawnLocations.isEmpty()) {
-            game.getPlugin().getLogger().warning("No [SPAWN] points were set. Falling back to world spawn.");
+            warn("No [SPAWN] points were set. Falling back to world spawn.");
             game.debugStrings.add("No [SPAWN] points were set.");
             return world.getSpawnLocation();
         }
@@ -185,6 +197,7 @@ public final class GameMap {
     }
 
     public void process() {
+        info("Processing...");
         Chunk startingChunk = world.getSpawnLocation().getChunk();
         int cx = startingChunk.getX();
         int cz = startingChunk.getZ();
@@ -231,6 +244,13 @@ public final class GameMap {
         // Finally replace the blocks we found in the step above.
         // The reason I don't do all this in one step is that I want to guarantee a certain "quality" of the block replacement across all chunks.
         replaceBlocks();
+        info("Done processing:"
+             + " [block]=" + coloredBlocks.size()
+             + " [color]=" + colorPool.size()
+             + " [spawn]=" + spawnLocations.size()
+             + " [boundary]=" + boundaries.size()
+             + " [credits]=" + creditSignsFound
+             + " [time]=" + timeSignsFound);
     }
 
     // Searches a chunk for map configuration signs.
@@ -240,7 +260,10 @@ public final class GameMap {
         processedChunks.add(cc);
         // Process the chunk.
         Chunk chunk = world.getChunkAt(x, z);
-        chunk.load();
+        chunk.addPluginChunkTicket(game.getPlugin());
+        // for (int y = world.getMinHeight(); y < world.getMaxHeight(); y += 16) {
+        //     world.getBlockAt(x << 4, y, z << 4);
+        // }
         for (BlockState state : chunk.getTileEntities()) {
             if (state instanceof Sign) {
                 Sign signBlock = (Sign) state;
@@ -301,6 +324,7 @@ public final class GameMap {
                         state.getBlock().setType(Material.AIR);
                         //attachedBlock.setType(Material.AIR);
                         // Time.
+                        creditSignsFound += 1;
                     } else if (firstLine.equals("[time]")) {
                         String t = lines.get(1);
                         if (t != null && !t.isEmpty()) {
@@ -315,6 +339,7 @@ public final class GameMap {
                             }
                         }
                         state.getBlock().setType(Material.AIR);
+                        timeSignsFound += 1;
                         //attachedBlock.setType(Material.AIR);
                     }
                 }
@@ -354,7 +379,7 @@ public final class GameMap {
         int numberOfColors = colorPool.size();
         if (numberOfColors == 0 || numberOfBlocks == 0) {
             game.denyStart = true;
-            game.getPlugin().getLogger().warning("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
+            warn("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
             if (numberOfBlocks == 0) {
                 game.debugStrings.add("No [BLOCK] blocks were configured.");
             }
@@ -366,7 +391,7 @@ public final class GameMap {
         // Need to have exactly two boundaries.
         if (boundaries.size() > 0 && boundaries.size() != 2) {
             game.denyStart = true;
-            game.getPlugin().getLogger().warning("Map boundaries misconfigured. Skipping the part that replaces blocks in the map");
+            warn("Map boundaries misconfigured. Skipping the part that replaces blocks in the map");
             game.debugStrings.add("There must be two and only two [BOUNDARY] signs.");
             return;
         }
@@ -473,7 +498,9 @@ public final class GameMap {
 
     public ItemStack getDye() {
         BlockData data = getRandomFromColorPool();
-        Color color = Color.fromBlockData(data);
+        Color color = data != null
+            ? Color.fromBlockData(data)
+            : Color.BLACK;
         ItemStack newStack = new ItemStack(color.getDyeMaterial());
         newStack.editMeta(meta -> {
                 meta.displayName(Component.text(color.niceName, color.toTextColor()));
@@ -497,6 +524,7 @@ public final class GameMap {
     }
 
     public void cleanUp() {
+        world.removePluginChunkTickets(game.getPlugin());
         clearHighlightBlocks();
         for (Player player : world.getPlayers()) {
             Players.heal(player);
