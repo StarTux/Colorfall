@@ -238,7 +238,6 @@ public final class GameMap {
         }
         // Then crawl the map again, this time finding all the blocks that needs to be replaced with color blocks.
         for (Point2D point : processedChunks) {
-            //debug("chunk " + point.getX() + ", " + point.getY());
             findBlocksToBeReplaced((int) point.getX(), (int) point.getY());
         }
         // Finally replace the blocks we found in the step above.
@@ -261,9 +260,6 @@ public final class GameMap {
         // Process the chunk.
         Chunk chunk = world.getChunkAt(x, z);
         chunk.addPluginChunkTicket(game.getPlugin());
-        // for (int y = world.getMinHeight(); y < world.getMaxHeight(); y += 16) {
-        //     world.getBlockAt(x << 4, y, z << 4);
-        // }
         for (BlockState state : chunk.getTileEntities()) {
             if (state instanceof Sign) {
                 Sign signBlock = (Sign) state;
@@ -322,8 +318,6 @@ public final class GameMap {
                             }
                         }
                         state.getBlock().setType(Material.AIR);
-                        //attachedBlock.setType(Material.AIR);
-                        // Time.
                         creditSignsFound += 1;
                     } else if (firstLine.equals("[time]")) {
                         String t = lines.get(1);
@@ -340,7 +334,6 @@ public final class GameMap {
                         }
                         state.getBlock().setType(Material.AIR);
                         timeSignsFound += 1;
-                        //attachedBlock.setType(Material.AIR);
                     }
                 }
             }
