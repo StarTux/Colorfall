@@ -191,7 +191,8 @@ public final class ColorfallPlugin extends JavaPlugin {
                 game.enable();
             }
         }
-        boolean loadNewWorld = game.getState() == GameState.INIT || (game.getState() == GameState.END && game.isObsolete());
+        boolean loadNewWorld = game != null
+            && (game.getState() == GameState.INIT || (game.getState() == GameState.END && game.isObsolete()));
         if (loadNewWorld) {
             gamePlayers.clear();
             GameMap oldMap = game.getGameMap();
