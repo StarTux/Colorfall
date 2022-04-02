@@ -712,4 +712,12 @@ public final class ColorfallGame {
         }
         return true;
     }
+
+    public int countActivePlayers() {
+        int count = 0;
+        for (GamePlayer gp : plugin.getGamePlayers().values()) {
+            if (gp.isPlayer()) count += 1;
+        }
+        return count;
+    }
 }

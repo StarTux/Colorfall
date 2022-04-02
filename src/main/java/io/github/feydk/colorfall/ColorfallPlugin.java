@@ -181,7 +181,7 @@ public final class ColorfallPlugin extends JavaPlugin {
                 bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
                 ticksWaiting += 1;
                 ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                         Component.text(players.size() + " Waiting...",
+                                                                         Component.text(players.size() + " waiting...",
                                                                                         NamedTextColor.GRAY)));
                 return;
             } else {
@@ -224,7 +224,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             case COUNTDOWN_TO_START:
             case STARTED:
                 ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                         Component.text("Playing", NamedTextColor.GRAY)));
+                                                                         Component.text(game.countActivePlayers() + " playing", NamedTextColor.GRAY)));
                 break;
             case END:
                 ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
