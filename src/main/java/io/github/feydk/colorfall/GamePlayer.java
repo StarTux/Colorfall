@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import io.github.feydk.colorfall.util.Players;
 import java.util.Date;
 import java.util.UUID;
 import lombok.Getter;
@@ -105,7 +106,7 @@ public final class GamePlayer {
         if (livesLeft == 0) {
             isAlive = false;
             // To avoid having spectators holding stuff in their hand.
-            player.getInventory().clear();
+            Players.clearInventory(player);
             setSpectator();
             plugin.getGame().onPlayerElimination(player);
         } else {

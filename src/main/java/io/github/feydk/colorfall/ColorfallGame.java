@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import io.github.feydk.colorfall.util.Players;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -212,7 +213,7 @@ public final class ColorfallGame {
                 if (player.isPermissionSet("group.streamer") && player.hasPermission("group.streamer")) continue;
                 GamePlayer gp = plugin.getGamePlayer(player);
                 player.teleport(gp.getSpawnLocation());
-                player.getInventory().clear();
+                Players.clearInventory(player);
                 gp.setPlayer();
                 player.setWalkSpeed(0.0f);
             }

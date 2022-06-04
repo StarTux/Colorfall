@@ -1,8 +1,11 @@
 package io.github.feydk.colorfall.util;
 
+import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.item.WardrobeItem;
 import org.bukkit.GameMode;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 
 public final class Players {
@@ -10,7 +13,7 @@ public final class Players {
 
     public static void reset(Player player) {
         heal(player);
-        player.getInventory().clear();
+        clearInventory(player);
         player.setArrowsInBody(0);
         player.setGameMode(GameMode.ADVENTURE);
         player.setInvisible(false);
@@ -23,5 +26,17 @@ public final class Players {
         player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue());
         player.setFoodLevel(20);
         player.setSaturation(20f);
+    }
+
+    public static void clearInventory(Player player) {
+        for (int i = 0; i < player.getInventory().getSize(); i += 1) {
+            ItemStack item = player.getInventory().getItem(i);
+            if (item == null || item.getType().isAir()) continue;
+            Mytems mytems = Mytems.forItem(item);
+            if (mytems != null && mytems.getMytem() instanceof WardrobeItem) {
+                continue;
+            }
+            player.getInventory().clear(i);
+        }
     }
 }
