@@ -232,6 +232,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             game.setState(GameState.COUNTDOWN_TO_START);
             if (oldMap != null) oldMap.cleanUp();
         }
+        if (game == null) return;
         game.tick();
         if (game.isTest()) {
             ServerPlugin.getInstance().setServerSidebarLines(null);
