@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.core.font.VanillaItems;
 import io.github.feydk.colorfall.util.Players;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -12,9 +13,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
@@ -37,6 +35,15 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
+import static net.kyori.adventure.text.Component.empty;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.newline;
+import static net.kyori.adventure.text.Component.space;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
+import static net.kyori.adventure.text.format.TextDecoration.*;
+import static net.kyori.adventure.title.Title.Times.times;
 
 @RequiredArgsConstructor @Getter
 public final class ColorfallGame {
@@ -381,18 +388,18 @@ public final class ColorfallGame {
             this.secondsLeft = seconds;
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (seconds == 0) {
-                    player.showTitle(Title.title(Component.text("Go!", NamedTextColor.GREEN),
-                                                 Component.empty(),
-                                                 Title.Times.of(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
+                    player.showTitle(Title.title(text("Go!", GREEN),
+                                                 empty(),
+                                                 times(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
                     player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, SoundCategory.MASTER, 0.2f, 1f);
                 } else if (seconds == plugin.getCountdownToStartDuration()) {
-                    player.showTitle(Title.title(Component.text("Get ready!", NamedTextColor.GREEN),
-                                                 Component.text("Game starts in " + plugin.getCountdownToStartDuration() + " seconds",
-                                                                NamedTextColor.GREEN)));
-                    player.sendMessage(Component.text(" Game starts in " + seconds + " seconds", NamedTextColor.AQUA));
+                    player.showTitle(Title.title(text("Get ready!", GREEN),
+                                                 text("Game starts in " + plugin.getCountdownToStartDuration() + " seconds",
+                                                      GREEN)));
+                    player.sendMessage(text(" Game starts in " + seconds + " seconds", AQUA));
                 } else {
-                    player.showTitle(Title.title(Component.text("Get ready!", NamedTextColor.GREEN),
-                                                 Component.text(seconds, NamedTextColor.GREEN)));
+                    player.showTitle(Title.title(text("Get ready!", GREEN),
+                                                 text(seconds, GREEN)));
                     player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) seconds));
                 }
             }
@@ -405,7 +412,7 @@ public final class ColorfallGame {
         RoundState newState = null;
         if (denyStart) {
             for (Player player : Bukkit.getOnlinePlayers()) {
-                player.sendMessage(Component.text(" Not starting game, due to missing configuration.", NamedTextColor.RED));
+                player.sendMessage(text(" Not starting game, due to missing configuration.", RED));
             }
             return GameState.END;
         }
@@ -429,7 +436,7 @@ public final class ColorfallGame {
         if (roundState == RoundState.RUNNING && roundTimeLeft % 20L == 0) {
             Round round = getRound(currentRoundIdx);
             Color color = Color.fromBlockData(currentColor);
-            plugin.getBossBar().name(Component.text(color.niceName, color.toTextColor(), TextDecoration.BOLD));
+            plugin.getBossBar().name(text(color.niceName, color.toTextColor(), BOLD));
             plugin.getBossBar().progress(currentRoundDuration == 0.0f
                                          ? 0.0f
                                          : (float) roundTimeLeft / (float) currentRoundDuration);
@@ -438,9 +445,9 @@ public final class ColorfallGame {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 // Countdown 3 seconds before round ends.
                 if (seconds > 0 && seconds <= 3) {
-                    player.showTitle(Title.title(Component.empty(),
-                                                 Component.text(seconds, NamedTextColor.RED),
-                                                 Title.Times.of(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
+                    player.showTitle(Title.title(empty(),
+                                                 text(seconds, RED),
+                                                 times(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
                     player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) seconds));
                     if (seconds <= 2) disallowPistons = true;
                 } else if (seconds == 0) {
@@ -464,21 +471,20 @@ public final class ColorfallGame {
                     gameMap.highlightBlocks(currentColor);
                     currentRoundRandomized = true;
                     randomizeCooldown = 5 * 20;
-                    Component title = Component.join(JoinConfiguration.noSeparators(), new Component[] {
-                            Component.text("R", NamedTextColor.DARK_AQUA),
-                            Component.text("a", NamedTextColor.DARK_PURPLE),
-                            Component.text("n", NamedTextColor.GOLD),
-                            Component.text("d", NamedTextColor.GREEN),
-                            Component.text("o", NamedTextColor.AQUA),
-                            Component.text("m", NamedTextColor.RED),
-                            Component.text("i", NamedTextColor.WHITE),
-                            Component.text("z", NamedTextColor.LIGHT_PURPLE),
-                            Component.text("e", NamedTextColor.AQUA),
-                            Component.text("d", NamedTextColor.GOLD),
-                            Component.text("!", NamedTextColor.WHITE),
-                        });
+                    Component title = join(noSeparators(),
+                                           text("R", DARK_AQUA),
+                                           text("a", DARK_PURPLE),
+                                           text("n", GOLD),
+                                           text("d", GREEN),
+                                           text("o", AQUA),
+                                           text("m", RED),
+                                           text("i", WHITE),
+                                           text("z", LIGHT_PURPLE),
+                                           text("e", AQUA),
+                                           text("d", GOLD),
+                                           text("!", WHITE));
                     for (Player player : Bukkit.getOnlinePlayers()) {
-                        player.showTitle(Title.title(Component.empty(), title));
+                        player.showTitle(Title.title(empty(), title));
                         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.2f, 1f);
                     }
                 }
@@ -500,9 +506,9 @@ public final class ColorfallGame {
                 if (seconds <= 0) {
                     player.playSound(player.getEyeLocation(), Sound.ENTITY_FIREWORK_ROCKET_LARGE_BLAST, SoundCategory.MASTER, 0.2f, 1f);
                 } else {
-                    player.showTitle(Title.title(Component.text(seconds, NamedTextColor.GREEN),
-                                                 Component.text("Round " + (currentRoundIdx + 1), NamedTextColor.GREEN),
-                                                 Title.Times.of(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
+                    player.showTitle(Title.title(text(seconds, GREEN),
+                                                 text("Round " + (currentRoundIdx + 1), GREEN),
+                                                 times(Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO)));
                     player.playNote(player.getEyeLocation(), Instrument.PIANO, new Note((int) seconds));
                 }
             }
@@ -537,11 +543,11 @@ public final class ColorfallGame {
         if (timeLeft % (20 * 5) == 0) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (winner != null) {
-                    player.showTitle(Title.title(Component.text(winner.getName(), NamedTextColor.GREEN),
-                                                 Component.text("Wins the Game!", NamedTextColor.GREEN)));
+                    player.showTitle(Title.title(text(winner.getName(), GREEN),
+                                                 text("Wins the Game!", GREEN)));
                 } else {
-                    player.showTitle(Title.title(Component.text("Draw!", NamedTextColor.RED),
-                                                 Component.text("Nobody wins", NamedTextColor.RED)));
+                    player.showTitle(Title.title(text("Draw!", RED),
+                                                 text("Nobody wins", RED)));
                 }
             }
         }
@@ -559,21 +565,21 @@ public final class ColorfallGame {
     public void onPlayerDeath(Player player) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.equals(player)) {
-                p.sendMessage(Component.text(" " + player.getName() + " had bad timing and lost a life.",
-                                             NamedTextColor.RED));
+                p.sendMessage(text(" " + player.getName() + " had bad timing and lost a life.",
+                                   RED));
             }
         }
         if (roundState == RoundState.RUNNING || roundState == RoundState.REMOVING_BLOCKS) {
-            player.sendMessage(Component.text(" You lost a life and are put in spectator mode until this round is over.",
-                                              NamedTextColor.RED));
+            player.sendMessage(text(" You lost a life and are put in spectator mode until this round is over.",
+                                    RED));
         }
     }
 
     public void onPlayerElimination(Player player) {
         plugin.getGamePlayer(player).setEndTime(new Date());
         for (Player p : Bukkit.getOnlinePlayers()) {
-            player.showTitle(Title.title(Component.empty(),
-                                         Component.text(player.getName() + " died and is out of the game", NamedTextColor.RED)));
+            player.showTitle(Title.title(empty(),
+                                         text(player.getName() + " died and is out of the game", RED)));
         }
     }
 
@@ -583,7 +589,11 @@ public final class ColorfallGame {
         // The clock.
         if (itemInHand.getType() == Material.CLOCK) {
             for (Player pp : Bukkit.getOnlinePlayers()) {
-                pp.sendMessage(Component.text(" " + p.getName() + " used a clock to extend the round!", NamedTextColor.GOLD));
+                pp.sendMessage(join(noSeparators(),
+                                    newline(),
+                                    space(), VanillaItems.CLOCK.component,
+                                    text(p.getName() + " used a clock to extend the round!", GOLD),
+                                    newline()));
             }
             currentRoundDuration += 100;
             // Allow pistons again since there is now at least 5 seconds left.
@@ -593,8 +603,7 @@ public final class ColorfallGame {
             return true;
         } else if (itemInHand.getType() == Material.EMERALD) {
             if (disallowRandomize) {
-                p.sendMessage(Component.text(" " + "You can't use the randomizer this late in the round!",
-                                             NamedTextColor.RED));
+                p.sendMessage(text(" " + "You can't use the randomizer this late in the round!", RED));
             } else {
                 if (randomizeCooldown <= 0) {
                     randomizeCooldown = 5 * 20;
@@ -602,27 +611,29 @@ public final class ColorfallGame {
                     gameMap.highlightBlocks(currentColor);
                     itemInHand.subtract(1);
                     plugin.getGamePlayer(p).addRandomizer();
-                    Component message = Component.join(JoinConfiguration.noSeparators(), new Component[] {
-                            Component.text(p.getName() + " "),
-                            Component.text("r", NamedTextColor.DARK_AQUA),
-                            Component.text("a", NamedTextColor.DARK_PURPLE),
-                            Component.text("n", NamedTextColor.GOLD),
-                            Component.text("d", NamedTextColor.GREEN),
-                            Component.text("o", NamedTextColor.AQUA),
-                            Component.text("m", NamedTextColor.RED),
-                            Component.text("i", NamedTextColor.WHITE),
-                            Component.text("z", NamedTextColor.LIGHT_PURPLE),
-                            Component.text("e", NamedTextColor.AQUA),
-                            Component.text("d", NamedTextColor.GOLD),
-                            Component.text(" the colors!", NamedTextColor.WHITE),
-                        });
+                    Component message = join(noSeparators(),
+                                             newline(),
+                                             space(), VanillaItems.EMERALD.component,
+                                             text(p.getName() + " "),
+                                             text("r", DARK_AQUA),
+                                             text("a", DARK_PURPLE),
+                                             text("n", GOLD),
+                                             text("d", GREEN),
+                                             text("o", AQUA),
+                                             text("m", RED),
+                                             text("i", WHITE),
+                                             text("z", LIGHT_PURPLE),
+                                             text("e", AQUA),
+                                             text("d", GOLD),
+                                             text(" the colors!", WHITE),
+                                             newline());
                     for (Player pp : Bukkit.getOnlinePlayers()) {
                         pp.sendMessage(message);
                         pp.playSound(pp.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.MASTER, 0.2f, 1f);
                     }
                 } else {
-                    p.sendMessage(Component.text(" " + "Randomize is on cooldown for another " + (randomizeCooldown / 20) + " seconds.",
-                                                 NamedTextColor.RED));
+                    p.sendMessage(text(" " + "Randomize is on cooldown for another " + (randomizeCooldown / 20) + " seconds.",
+                                       RED));
                 }
             }
             return true;
@@ -692,9 +703,9 @@ public final class ColorfallGame {
             if (plugin.getGame().getGameMap().isColoredBlock(block)) {
                 Color color = Color.fromBlockData(block.getBlockData());
                 if (block.getType() != Material.AIR && block.getBlockData().equals(currentColor)) {
-                    player.sendMessage(Component.text(" That block is " + color.niceName + ", and it is the right one!", NamedTextColor.GREEN));
+                    player.sendMessage(text(" That block is " + color.niceName + ", and it is the right one!", GREEN));
                 } else {
-                    player.sendMessage(Component.text(" That block is " + color.niceName + ". That's not the right one!", NamedTextColor.RED));
+                    player.sendMessage(text(" That block is " + color.niceName + ". That's not the right one!", RED));
                 }
             }
             return true;
