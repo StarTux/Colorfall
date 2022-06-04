@@ -1,6 +1,7 @@
 package io.github.feydk.colorfall;
 
 import com.cavetale.fam.trophy.Highscore;
+import com.cavetale.mytems.Mytems;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
@@ -284,6 +285,10 @@ public final class EventListener implements Listener {
             case STARTED:
                 lines.add(join(noSeparators(), text("Round ", GRAY), text(plugin.game.currentRoundIdx, WHITE)));
                 lines.add(join(noSeparators(), text("Time ", GRAY), text(plugin.game.secondsLeft, WHITE)));
+                GamePlayer gp = plugin.getGamePlayer(event.getPlayer());
+                if (gp != null && gp.isPlayer() && gp.isAlive()) {
+                    lines.add(join(noSeparators(), text("Lives ", GRAY), text(gp.getLivesLeft(), WHITE)));
+                }
                 break;
             case END:
                 lines.add(text("Game Over " + plugin.game.secondsLeft, RED));
@@ -296,7 +301,8 @@ public final class EventListener implements Listener {
             for (GamePlayer gamePlayer : gamePlayers) {
                 Player player = gamePlayer.getPlayer();
                 lines.add(join(noSeparators(),
-                               text(gamePlayer.livesLeft, GOLD),
+                               Mytems.HEART.component,
+                               text(gamePlayer.livesLeft, RED),
                                space(),
                                (player != null ? player.displayName() : text(gamePlayer.name))));
             }
