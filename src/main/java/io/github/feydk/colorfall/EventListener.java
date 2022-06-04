@@ -44,6 +44,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
+import static com.cavetale.core.font.Unicode.tiny;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.space;
 import static net.kyori.adventure.text.Component.text;
@@ -283,11 +284,11 @@ public final class EventListener implements Listener {
                 lines.add(text("Get ready.. " + plugin.game.secondsLeft, GREEN));
                 break;
             case STARTED:
-                lines.add(join(noSeparators(), text("Round ", GRAY), text(plugin.game.currentRoundIdx, WHITE)));
-                lines.add(join(noSeparators(), text("Time ", GRAY), text(plugin.game.secondsLeft, WHITE)));
+                lines.add(join(noSeparators(), text(tiny("round "), GRAY), text(plugin.game.currentRoundIdx, WHITE)));
+                lines.add(join(noSeparators(), text(tiny("time "), GRAY), text(plugin.game.secondsLeft, WHITE)));
                 GamePlayer gp = plugin.getGamePlayer(event.getPlayer());
                 if (gp != null && gp.isPlayer() && gp.isAlive()) {
-                    lines.add(join(noSeparators(), text("Lives ", GRAY), text(gp.getLivesLeft(), WHITE)));
+                    lines.add(join(noSeparators(), text(tiny("lives "), GRAY), text(gp.getLivesLeft(), WHITE)));
                 }
                 break;
             case END:
