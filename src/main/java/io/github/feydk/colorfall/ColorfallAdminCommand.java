@@ -1,33 +1,32 @@
 package io.github.feydk.colorfall;
 
-import com.cavetale.core.command.CommandContext;
+import com.cavetale.core.command.AbstractCommand;
+import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
+import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
-@RequiredArgsConstructor
-public final class ColorfallAdminCommand implements TabExecutor {
-    private final ColorfallPlugin plugin;
-    private CommandNode rootNode;
+public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin> {
+    protected ColorfallAdminCommand(final ColorfallPlugin plugin) {
+        super(plugin, "colorfalladmin");
+    }
 
-    public void enable() {
-        plugin.getCommand("colorfalladmin").setExecutor(this);
-        rootNode = new CommandNode("cfa");
+    @Override
+    protected void onEnable() {
         rootNode.addChild("maps")
             .denyTabCompletion()
             .description("List maps")
@@ -58,28 +57,32 @@ public final class ColorfallAdminCommand implements TabExecutor {
             .completableList(ctx -> plugin.getWorldNames())
             .description("Set the next worlds")
             .senderCaller(this::next);
-    }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
-        return rootNode.call(new CommandContext(sender, command, alias, args), args);
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return rootNode.complete(new CommandContext(sender, command, alias, args), args);
+        CommandNode scoreNode = rootNode.addChild("score")
+            .description("Score commands");
+        scoreNode.addChild("add")
+            .description("Manipulate score")
+            .completers(PlayerCache.NAME_COMPLETER,
+                        CommandArgCompleter.integer(i -> i != 0))
+            .senderCaller(this::scoreAdd);
+        scoreNode.addChild("clear").denyTabCompletion()
+            .description("Clear all scores")
+            .senderCaller(this::scoreClear);
+        scoreNode.addChild("reward").denyTabCompletion()
+            .description("Reward players")
+            .senderCaller(this::scoreReward);
     }
 
     boolean maps(Player player, String[] args) {
         if (args.length != 0) return false;
         List<Component> components = new ArrayList<>();
         for (String name : plugin.getWorldNames()) {
-            components.add(Component.text("[" + name + "]", NamedTextColor.GOLD)
-                           .hoverEvent(HoverEvent.showText(Component.text(name)))
+            components.add(text("[" + name + "]", GOLD)
+                           .hoverEvent(HoverEvent.showText(text(name)))
                            .clickEvent(ClickEvent.runCommand("/cfa map " + name)));
         }
         Component msg = Component.join(JoinConfiguration.builder()
-                                       .prefix(Component.text(components.size() + " maps: ", NamedTextColor.AQUA))
+                                       .prefix(text(components.size() + " maps: ", AQUA))
                                        .separator(Component.space())
                                        .build(),
                                        components);
@@ -98,7 +101,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        player.sendMessage(Component.text("Loading map: " + name, NamedTextColor.YELLOW));
+        player.sendMessage(text("Loading map: " + name, YELLOW));
         ColorfallGame game = new ColorfallGame(plugin);
         plugin.setGame(game);
         game.loadMap(name);
@@ -118,7 +121,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         if (plugin.getGame() != null && plugin.getGame().getState() != GameState.INIT) {
             throw new CommandWarn("Another map is already playing!");
         }
-        player.sendMessage(Component.text("Loading map: " + name, NamedTextColor.YELLOW));
+        player.sendMessage(text("Loading map: " + name, YELLOW));
         ColorfallGame game = new ColorfallGame(plugin);
         plugin.setGame(game);
         game.loadMap(name);
@@ -149,7 +152,7 @@ public final class ColorfallAdminCommand implements TabExecutor {
         } else {
             player.getInventory().addItem(stack);
         }
-        player.sendMessage(Component.text("Given item " + key, NamedTextColor.YELLOW));
+        player.sendMessage(text("Given item " + key, YELLOW));
         return true;
     }
 
@@ -173,5 +176,28 @@ public final class ColorfallAdminCommand implements TabExecutor {
         plugin.save();
         sender.sendMessage("Next worlds set: " + plugin.saveState.worlds);
         return true;
+    }
+
+    private boolean scoreClear(CommandSender sender, String[] args) {
+        if (args.length != 0) return false;
+        plugin.saveState.scores.clear();
+        plugin.computeHighscore();
+        sender.sendMessage(text("All scores cleared", AQUA));
+        return true;
+    }
+
+    private boolean scoreAdd(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        PlayerCache target = PlayerCache.require(args[0]);
+        int value = CommandArgCompleter.requireInt(args[1], i -> i != 0);
+        plugin.saveState.addScore(target.uuid, value);
+        plugin.computeHighscore();
+        sender.sendMessage(text("Score of " + target.name + " manipulated by " + value, AQUA));
+        return true;
+    }
+
+    private void scoreReward(CommandSender sender) {
+        int count = plugin.rewardHighscore();
+        sender.sendMessage(text("Rewarded " + count + " players", AQUA));
     }
 }

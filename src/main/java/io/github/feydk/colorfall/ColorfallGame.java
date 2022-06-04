@@ -151,6 +151,8 @@ public final class ColorfallGame {
                                 String cmd = "titles unlockset " + winner.getName() + " " + String.join(" ", titles);
                                 plugin.getLogger().info("Running command: " + cmd);
                                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                                plugin.saveState.addScore(winner.uuid, 10);
+                                plugin.computeHighscore();
                             }
                         }
                     }
@@ -505,6 +507,15 @@ public final class ColorfallGame {
             }
             if (roundTimeLeft <= 0) {
                 newState = RoundState.RUNNING;
+                if (plugin.saveState.event) {
+                    for (Player player : world.getPlayers()) {
+                        GamePlayer gp = plugin.getGamePlayer(player);
+                        if (gp.isPlayer() && gp.isAlive() && !gp.diedThisRound()) {
+                            plugin.saveState.addScore(player.getUniqueId(), 1);
+                        }
+                    }
+                    plugin.computeHighscore();
+                }
             }
         }
         if (newState != null && roundState != newState) {

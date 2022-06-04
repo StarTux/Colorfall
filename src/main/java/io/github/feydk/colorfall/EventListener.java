@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
@@ -8,8 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -44,6 +43,11 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.space;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
 public final class EventListener implements Listener {
@@ -245,7 +249,7 @@ public final class EventListener implements Listener {
         if (proj.getShooter() instanceof Player) {
             Player launcher = (Player) proj.getShooter();
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
-            victim.sendMessage(Component.text(launcher.getName() + " hit you with a snowball", NamedTextColor.RED));
+            victim.sendMessage(text(launcher.getName() + " hit you with a snowball", RED));
         }
     }
 
@@ -267,35 +271,40 @@ public final class EventListener implements Listener {
 
     @EventHandler
     protected void onPlayerSidebar(PlayerSidebarEvent event) {
-        if (plugin.game == null || plugin.game.obsolete) return;
         List<Component> lines = new ArrayList<>();
-        switch (plugin.game.state) {
-        case WAIT_FOR_PLAYERS:
-            lines.add(Component.text("Waiting", NamedTextColor.GREEN));
-            break;
-        case COUNTDOWN_TO_START:
-            lines.add(Component.text("Get ready.. " + plugin.game.secondsLeft, NamedTextColor.GREEN));
-            break;
-        case STARTED:
-            lines.add(Component.text("Round " + plugin.game.currentRoundIdx + " " + plugin.game.secondsLeft,
-                                     NamedTextColor.GREEN));
-            break;
-        case END:
-            lines.add(Component.text("Game Over " + plugin.game.secondsLeft, NamedTextColor.RED));
-            break;
-        default: break;
+        lines.add(plugin.TITLE);
+        if (plugin.game != null && !plugin.game.obsolete) {
+            switch (plugin.game.state) {
+            case WAIT_FOR_PLAYERS:
+                lines.add(text("Waiting", GREEN));
+                break;
+            case COUNTDOWN_TO_START:
+                lines.add(text("Get ready.. " + plugin.game.secondsLeft, GREEN));
+                break;
+            case STARTED:
+                lines.add(join(noSeparators(), text("Round ", GRAY), text(plugin.game.currentRoundIdx, WHITE)));
+                lines.add(join(noSeparators(), text("Time ", GRAY), text(plugin.game.secondsLeft, WHITE)));
+                break;
+            case END:
+                lines.add(text("Game Over " + plugin.game.secondsLeft, RED));
+                break;
+            default: break;
+            }
+            List<GamePlayer> gamePlayers = new ArrayList<>(plugin.gamePlayers.values());
+            gamePlayers.removeIf(gp -> !gp.isPlayer());
+            Collections.sort(gamePlayers, (a, b) -> Integer.compare(b.livesLeft, a.livesLeft));
+            for (GamePlayer gamePlayer : gamePlayers) {
+                Player player = gamePlayer.getPlayer();
+                lines.add(join(noSeparators(),
+                               text(gamePlayer.livesLeft, GOLD),
+                               space(),
+                               (player != null ? player.displayName() : text(gamePlayer.name))));
+            }
         }
-        List<GamePlayer> gamePlayers = new ArrayList<>(plugin.gamePlayers.values());
-        gamePlayers.removeIf(gp -> !gp.isPlayer());
-        Collections.sort(gamePlayers, (a, b) -> Integer.compare(b.livesLeft, a.livesLeft));
-        for (GamePlayer gamePlayer : gamePlayers) {
-            Player player = gamePlayer.getPlayer();
-            lines.add(Component.join(JoinConfiguration.noSeparators(), new Component[] {
-                        Component.text(gamePlayer.livesLeft, NamedTextColor.GOLD),
-                        Component.space(),
-                        (player != null ? player.displayName() : Component.text(gamePlayer.name)),
-                    }));
+        if (plugin.saveState.event) {
+            lines.addAll(Highscore.sidebar(plugin.highscore));
         }
+        if (lines.isEmpty()) return;
         event.add(plugin, Priority.HIGHEST, lines);
     }
 }

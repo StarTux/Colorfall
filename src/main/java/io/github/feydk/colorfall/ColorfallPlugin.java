@@ -1,7 +1,10 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.core.util.Json;
+import com.cavetale.fam.trophy.Highscore;
+import com.cavetale.mytems.item.trophy.TrophyCategory;
+import com.cavetale.mytems.util.BlockColor;
 import com.cavetale.server.ServerPlugin;
-import io.github.feydk.colorfall.util.Json;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +24,9 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
 
 @Getter
 public final class ColorfallPlugin extends JavaPlugin {
@@ -40,6 +46,17 @@ public final class ColorfallPlugin extends JavaPlugin {
     @Setter protected ColorfallGame game;
     protected SaveState saveState;
     protected int ticksWaiting;
+    protected List<Highscore> highscore = List.of();
+    public static final Component TITLE = join(noSeparators(),
+                                               text("C", BlockColor.ORANGE.textColor),
+                                               text("o", BlockColor.MAGENTA.textColor),
+                                               text("l", BlockColor.LIGHT_BLUE.textColor),
+                                               text("o", BlockColor.YELLOW.textColor),
+                                               text("r", BlockColor.LIME.textColor),
+                                               text("f", BlockColor.PINK.textColor),
+                                               text("a", BlockColor.BLUE.textColor),
+                                               text("l", BlockColor.GREEN.textColor),
+                                               text("l", BlockColor.RED.textColor));
 
     @Override
     public void onEnable() {
@@ -56,6 +73,7 @@ public final class ColorfallPlugin extends JavaPlugin {
         bossBar = BossBar.bossBar(Component.text("Colorfall"), 0.0f,
                                   BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
         loadSave();
+        computeHighscore();
         for (Player player : getServer().getOnlinePlayers()) {
             enter(player);
         }
@@ -248,5 +266,18 @@ public final class ColorfallPlugin extends JavaPlugin {
         }
         gamePlayers.clear();
         ticksWaiting = 0;
+    }
+
+    protected void computeHighscore() {
+        highscore = Highscore.of(saveState.scores);
+    }
+
+    protected int rewardHighscore() {
+        return Highscore.reward(saveState.scores,
+                                "colorfall",
+                                TrophyCategory.MEDAL,
+                                TITLE,
+                                hi -> ("You collected "
+                                       + hi.score + " point" + (hi.score == 1 ? "" : "s")));
     }
 }
