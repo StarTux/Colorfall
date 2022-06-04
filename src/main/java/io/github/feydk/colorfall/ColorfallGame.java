@@ -507,7 +507,7 @@ public final class ColorfallGame {
             }
             if (roundTimeLeft <= 0) {
                 newState = RoundState.RUNNING;
-                if (plugin.saveState.event) {
+                if (plugin.saveState.event && currentRoundIdx <= 20) {
                     for (Player player : world.getPlayers()) {
                         GamePlayer gp = plugin.getGamePlayer(player);
                         if (gp.isPlayer() && gp.isAlive() && !gp.diedThisRound()) {
