@@ -1,6 +1,7 @@
 package io.github.feydk.colorfall;
 
 import com.cavetale.core.font.VanillaItems;
+import com.cavetale.mytems.Mytems;
 import io.github.feydk.colorfall.util.Players;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -563,10 +564,14 @@ public final class ColorfallGame {
     }
 
     public void onPlayerDeath(Player player) {
+        Component msg = join(noSeparators(),
+                             newline(),
+                             space(), Mytems.SKELETON_FACE.component,
+                             text(player.getName() + " had bad timing and lost a life.", RED),
+                             newline());
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.equals(player)) {
-                p.sendMessage(text(" " + player.getName() + " had bad timing and lost a life.",
-                                   RED));
+                p.sendMessage(msg);
             }
         }
         if (roundState == RoundState.RUNNING || roundState == RoundState.REMOVING_BLOCKS) {
