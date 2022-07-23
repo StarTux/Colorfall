@@ -2,6 +2,7 @@ package io.github.feydk.colorfall;
 
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
@@ -309,7 +310,7 @@ public final class EventListener implements Listener {
             }
         }
         if (plugin.saveState.event) {
-            lines.addAll(Highscore.sidebar(plugin.highscore));
+            lines.addAll(Highscore.sidebar(plugin.highscore, TrophyCategory.MEDAL));
         }
         if (lines.isEmpty()) return;
         event.add(plugin, Priority.HIGHEST, lines);
