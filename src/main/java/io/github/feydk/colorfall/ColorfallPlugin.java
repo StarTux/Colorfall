@@ -289,6 +289,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             game.setState(GameState.COUNTDOWN_TO_START);
             ColorfallWorld cw = colorfallWorlds.get(worldName);
             if (cw != null) {
+                getLogger().info("Loading world " + cw);
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.sendMessage("");
                     player.sendMessage(textOfChildren(text("Map ", GRAY), text(cw.getDisplayName(), GREEN)));
