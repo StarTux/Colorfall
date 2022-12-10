@@ -13,16 +13,14 @@ softdepend: []
 
 commands:
   colorfall:
-    permission: colorfall.colorfall
     aliases: [cf]
-    usage: |-
-      /cf ready - Mark yourself as ready
+    permission: colorfall.colorfall
+    usage: /cf
 
   colorfalladmin:
     aliases: [cfa]
     permission: colorfall.admin
-    usage: |-
-      /cfa
+    usage: /cfa
 
 permissions:
   colorfall.colorfall:

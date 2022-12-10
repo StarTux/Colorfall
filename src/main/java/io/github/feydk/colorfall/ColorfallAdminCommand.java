@@ -53,6 +53,10 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
             .completableList(List.of("true", "false"))
             .description("Set event mode")
             .senderCaller(this::event);
+        rootNode.addChild("eventauto").arguments("<value>")
+            .completableList(List.of("true", "false"))
+            .description("Set event auto mode")
+            .senderCaller(this::eventAuto);
         rootNode.addChild("next").arguments("<worlds...>")
             .completableList(ctx -> plugin.getWorldNames())
             .description("Set the next worlds")
@@ -167,6 +171,20 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
             }
         }
         sender.sendMessage("Event mode " + (plugin.saveState.event ? "enabled" : "disabled"));
+        return true;
+    }
+
+    boolean eventAuto(CommandSender sender, String[] args) {
+        if (args.length > 1) return false;
+        if (args.length == 1) {
+            try {
+                plugin.saveState.eventAuto = Boolean.parseBoolean(args[0]);
+                plugin.save();
+            } catch (IllegalArgumentException iae) {
+                throw new CommandWarn("Illegal value: " + args[0]);
+            }
+        }
+        sender.sendMessage("Event auto mode " + (plugin.saveState.eventAuto ? "enabled" : "disabled"));
         return true;
     }
 

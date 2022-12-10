@@ -9,7 +9,9 @@ import java.util.UUID;
 public final class SaveState {
     protected List<String> worlds = new ArrayList<>();
     protected boolean event = false;
+    protected boolean eventAuto = false;
     protected Map<UUID, Integer> scores = new HashMap<>();
+    protected Map<UUID, String> votes = new HashMap<>();
 
     public void addScore(UUID uuid, int value) {
         int old = scores.getOrDefault(uuid, 0);

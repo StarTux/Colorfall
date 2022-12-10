@@ -63,6 +63,7 @@ public final class EventListener implements Listener {
         plugin.enter(player);
         if (plugin.getGame() == null) {
             player.setGameMode(GameMode.ADVENTURE);
+            if (plugin.schedulingGame) plugin.remindToVote(player);
             return;
         }
         GamePlayer gp = plugin.getGamePlayer(player);
@@ -150,16 +151,18 @@ public final class EventListener implements Listener {
         }
         if (event.getCause() == DamageCause.VOID) {
             event.setCancelled(true);
-            player.setHealth(20);
-            player.setVelocity(new Vector().zero());
-            Location location = gp.getSpawnLocation();
-            if (location == null) location = player.getWorld().getSpawnLocation();
-            player.teleport(location);
-            player.setHealth(20.0);
-            player.setGameMode(GameMode.SPECTATOR);
-            if (plugin.getGame() != null && plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
-                gp.died();
-            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.setHealth(20);
+                    player.setVelocity(new Vector().zero());
+                    Location location = gp.getSpawnLocation();
+                    if (location == null) location = player.getWorld().getSpawnLocation();
+                    player.teleport(location);
+                    player.setHealth(20.0);
+                    if (plugin.getGame() != null && plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
+                        player.setGameMode(GameMode.SPECTATOR);
+                        gp.died();
+                    }
+                });
         } else {
             player.setHealth(20);
             if (event.getCause() != DamageCause.ENTITY_ATTACK && event.getCause() != DamageCause.PROJECTILE) {
