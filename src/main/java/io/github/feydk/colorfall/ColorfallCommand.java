@@ -40,20 +40,7 @@ public final class ColorfallCommand extends AbstractCommand<ColorfallPlugin> {
     private boolean vote(Player player, String[] args) {
         if (args.length == 0) {
             if (!plugin.schedulingGame) throw new CommandWarn("The vote is over");
-            List<ColorfallWorld> colorfallWorlds = new ArrayList<>();
-            colorfallWorlds.addAll(plugin.colorfallWorlds.values());
-            Collections.sort(colorfallWorlds, (a, b) -> String.CASE_INSENSITIVE_ORDER.compare(a.getDisplayName(), b.getDisplayName()));
-            List<Component> lines = new ArrayList<>();
-            for (ColorfallWorld colorfallWorld : colorfallWorlds) {
-                List<Component> tooltip = new ArrayList<>();
-                Component displayName = text(colorfallWorld.getDisplayName(), BLUE);
-                tooltip.add(displayName);
-                tooltip.addAll(Text.wrapLore(colorfallWorld.getDescription(), c -> c.color(GRAY)));
-                lines.add(displayName
-                          .hoverEvent(showText(join(separator(newline()), tooltip)))
-                          .clickEvent(runCommand("/colorfall vote " + colorfallWorld.getPath())));
-            }
-            bookLines(player, lines);
+            openMapBook(player);
             return true;
         } else if (args.length == 1) {
             if (!plugin.schedulingGame) throw new CommandWarn("The vote is over");
@@ -90,6 +77,24 @@ public final class ColorfallCommand extends AbstractCommand<ColorfallPlugin> {
                     meta.pages(toPages(lines));
                 }
             });
+        player.closeInventory();
         player.openBook(book);
+    }
+
+    public void openMapBook(Player player) {
+        List<ColorfallWorld> colorfallWorlds = new ArrayList<>();
+        colorfallWorlds.addAll(plugin.colorfallWorlds.values());
+        Collections.sort(colorfallWorlds, (a, b) -> String.CASE_INSENSITIVE_ORDER.compare(a.getDisplayName(), b.getDisplayName()));
+        List<Component> lines = new ArrayList<>();
+        for (ColorfallWorld colorfallWorld : colorfallWorlds) {
+            List<Component> tooltip = new ArrayList<>();
+            Component displayName = text(colorfallWorld.getDisplayName(), BLUE);
+            tooltip.add(displayName);
+            tooltip.addAll(Text.wrapLore(colorfallWorld.getDescription(), c -> c.color(GRAY)));
+            lines.add(displayName
+                      .hoverEvent(showText(join(separator(newline()), tooltip)))
+                      .clickEvent(runCommand("/colorfall vote " + colorfallWorld.getPath())));
+        }
+        bookLines(player, lines);
     }
 }

@@ -91,6 +91,7 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
                                        .build(),
                                        components);
         player.sendMessage(msg);
+        plugin.colorfallCommand.openMapBook(player);
         return true;
     }
 

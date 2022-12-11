@@ -41,6 +41,8 @@ public final class ColorfallPlugin extends JavaPlugin {
     protected final Map<String, ItemStack> powerups = new HashMap<String, ItemStack>();
     protected final Map<Integer, Round> rounds = new HashMap<Integer, Round>();
     protected final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
+    protected final ColorfallAdminCommand colorfallAdminCommand = new ColorfallAdminCommand(this);
+    protected final ColorfallCommand colorfallCommand = new ColorfallCommand(this);
     // Config stuff.
     protected int disconnectLimit;
     protected int waitForPlayersDuration = 60;
@@ -70,8 +72,8 @@ public final class ColorfallPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        new ColorfallAdminCommand(this).enable();
-        new ColorfallCommand(this).enable();
+        colorfallAdminCommand.enable();
+        colorfallCommand.enable();
         reloadConfig();
         saveDefaultConfig();
         saveResource("powerups.yml", false);
