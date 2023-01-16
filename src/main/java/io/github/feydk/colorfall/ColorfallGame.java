@@ -1,5 +1,8 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.core.event.minigame.MinigameFlag;
+import com.cavetale.core.event.minigame.MinigameMatchCompleteEvent;
+import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.font.VanillaItems;
 import com.cavetale.mytems.Mytems;
 import io.github.feydk.colorfall.util.Players;
@@ -243,6 +246,17 @@ public final class ColorfallGame {
             moreThanOnePlayed = count > 1;
             break;
         case END:
+            do {
+                MinigameMatchCompleteEvent mmcEvent = new MinigameMatchCompleteEvent(MinigameMatchType.COLORFALL);
+                if (plugin.saveState.event) mmcEvent.addFlags(MinigameFlag.EVENT);
+                for (GamePlayer gp : plugin.getGamePlayers().values()) {
+                    if (gp.isPlayer()) mmcEvent.addPlayerUuid(gp.uuid);
+                }
+                if (winner != null) {
+                    mmcEvent.addWinnerUuid(winner.uuid);
+                }
+                mmcEvent.callEvent();
+            } while (false);
             for (Player player : Bukkit.getOnlinePlayers()) {
                 plugin.getGamePlayer(player).setSpectator();
                 player.playSound(player.getEyeLocation(), Sound.ENTITY_ENDER_DRAGON_DEATH, SoundCategory.MASTER, 1f, 1f);
