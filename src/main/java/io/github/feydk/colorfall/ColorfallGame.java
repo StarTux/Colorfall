@@ -250,7 +250,7 @@ public final class ColorfallGame {
                 MinigameMatchCompleteEvent mmcEvent = new MinigameMatchCompleteEvent(MinigameMatchType.COLORFALL);
                 if (plugin.saveState.event) mmcEvent.addFlags(MinigameFlag.EVENT);
                 for (GamePlayer gp : plugin.getGamePlayers().values()) {
-                    if (gp.isPlayer()) mmcEvent.addPlayerUuid(gp.uuid);
+                    if (gp.isDidPlay()) mmcEvent.addPlayerUuid(gp.uuid);
                 }
                 if (winner != null) {
                     mmcEvent.addWinnerUuid(winner.uuid);
