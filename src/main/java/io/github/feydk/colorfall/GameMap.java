@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.mytems.util.BlockColor;
 import io.github.feydk.colorfall.util.Players;
 import java.io.File;
 import java.util.ArrayList;
@@ -26,13 +27,16 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 @Getter
 public final class GameMap {
@@ -146,15 +150,18 @@ public final class GameMap {
                 continue;
             }
             if (entity != null && !entity.isDead()) continue;
-            entity = world.spawn(b.getLocation().add(0.5, -1.25, 0.5), ArmorStand.class, e -> {
+            BlockColor blockColor = BlockColor.of(currentColor.getMaterial());
+            if (blockColor == null) return;
+            entity = world.spawn(b.getLocation().add(0.5, 0.5, 0.5), BlockDisplay.class, e -> {
                     e.setPersistent(false);
                     e.setGlowing(true);
-                    e.setGravity(false);
-                    e.setCanMove(false);
-                    e.setCanTick(false);
-                    e.setMarker(true);
-                    e.setVisible(false);
-                    e.getEquipment().setHelmet(new ItemStack(currentColor.getMaterial()));
+                    e.setBlock(currentColor);
+                    e.setGlowColorOverride(blockColor.bukkitColor);
+                    e.setBrightness(new BlockDisplay.Brightness(15, 15));
+                    e.setTransformation(new Transformation(new Vector3f(-0.5125f, -0.5125f, -0.5125f),
+                                                           new AxisAngle4f(0f, 0f, 0f, 0f),
+                                                           new Vector3f(1.05f, 1.05f, 1.05f),
+                                                           new AxisAngle4f(0f, 0f, 0f, 0f)));
                 });
             highlightEntities.put(b, entity);
         }
