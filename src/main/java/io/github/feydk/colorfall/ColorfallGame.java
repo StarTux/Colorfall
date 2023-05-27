@@ -529,15 +529,6 @@ public final class ColorfallGame {
             }
             if (roundTimeLeft <= 0) {
                 newState = RoundState.RUNNING;
-                if (plugin.saveState.event && currentRoundIdx <= 20) {
-                    for (Player player : world.getPlayers()) {
-                        GamePlayer gp = plugin.getGamePlayer(player);
-                        if (gp.isPlayer() && gp.isAlive() && !gp.diedThisRound()) {
-                            plugin.saveState.addScore(player.getUniqueId(), 1);
-                        }
-                    }
-                    plugin.computeHighscore();
-                }
             }
         }
         if (newState != null && roundState != newState) {
@@ -619,6 +610,10 @@ public final class ColorfallGame {
             disallowPistons = false;
             itemInHand.subtract(1);
             plugin.getGamePlayer(p).addClock();
+            if (plugin.saveState.event) {
+                plugin.saveState.addScore(p.getUniqueId(), 1);
+                plugin.computeHighscore();
+            }
             return true;
         } else if (itemInHand.getType() == Material.EMERALD) {
             if (disallowRandomize) {
@@ -630,6 +625,10 @@ public final class ColorfallGame {
                     gameMap.highlightBlocks(currentColor);
                     itemInHand.subtract(1);
                     plugin.getGamePlayer(p).addRandomizer();
+                    if (plugin.saveState.event) {
+                        plugin.saveState.addScore(p.getUniqueId(), 1);
+                        plugin.computeHighscore();
+                    }
                     Component message = join(noSeparators(),
                                              newline(),
                                              space(), VanillaItems.EMERALD.component,
@@ -747,6 +746,10 @@ public final class ColorfallGame {
                 player.getWorld().playSound(block.getLocation(), Sound.ENTITY_SHEEP_SHEAR, SoundCategory.MASTER, 0.2f, 1f);
                 hand.subtract(1);
                 plugin.getGamePlayer(player).addDye();
+                if (plugin.saveState.event) {
+                    plugin.saveState.addScore(player.getUniqueId(), 1);
+                    plugin.computeHighscore();
+                }
                 return true;
             } else {
                 return tryUseItemInHand(player);

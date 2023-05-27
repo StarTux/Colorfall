@@ -252,10 +252,13 @@ public final class EventListener implements Listener {
         victim.setVelocity(velo.multiply(3.0));
         victim.getWorld().spawnParticle(Particle.SNOWBALL, proj.getLocation(), 48, 0.2, 0.2, 0.2, 0.0);
         victim.getWorld().playSound(proj.getLocation(), Sound.BLOCK_SNOW_BREAK, SoundCategory.MASTER, 2.0f, 1.0f);
-        if (proj.getShooter() instanceof Player) {
-            Player launcher = (Player) proj.getShooter();
+        if (proj.getShooter() instanceof Player launcher) {
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
             victim.sendMessage(text(launcher.getName() + " hit you with a snowball", RED));
+            if (plugin.saveState.event) {
+                plugin.saveState.addScore(launcher.getUniqueId(), 2);
+                plugin.computeHighscore();
+            }
         }
     }
 
