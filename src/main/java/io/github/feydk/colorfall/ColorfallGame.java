@@ -241,7 +241,13 @@ public final class ColorfallGame {
                 if (plugin.saveState.event) {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
                 }
+                if (plugin.saveState.event) {
+                    plugin.saveState.addScore(player.getUniqueId(), 1);
+                }
                 count++;
+            }
+            if (plugin.saveState.event) {
+                plugin.computeHighscore();
             }
             moreThanOnePlayed = count > 1;
             break;
@@ -747,7 +753,7 @@ public final class ColorfallGame {
                 hand.subtract(1);
                 plugin.getGamePlayer(player).addDye();
                 if (plugin.saveState.event) {
-                    plugin.saveState.addScore(player.getUniqueId(), 1);
+                    plugin.saveState.addScore(player.getUniqueId(), 2);
                     plugin.computeHighscore();
                 }
                 return true;
