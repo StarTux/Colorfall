@@ -154,7 +154,9 @@ public final class EventListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (event.getCause() == DamageCause.VOID) {
+        final boolean didFallOut = event.getCause() == DamageCause.VOID
+            || (event.getCause() == DamageCause.FALL && !plugin.game.gameMap.isBlockWithinCuboid(player.getLocation().getBlock()));
+        if (didFallOut) {
             event.setCancelled(true);
             Bukkit.getScheduler().runTask(plugin, () -> {
                     player.setHealth(20);

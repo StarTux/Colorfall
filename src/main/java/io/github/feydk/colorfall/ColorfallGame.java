@@ -33,12 +33,12 @@ import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import static net.kyori.adventure.text.Component.empty;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.newline;
@@ -181,8 +181,9 @@ public final class ColorfallGame {
         for (GamePlayer gp : new ArrayList<>(plugin.getGamePlayers().values())) {
             if (!gp.isPlayer()) continue;
             Player player = Bukkit.getPlayer(gp.getUuid());
-            if (player != null) gp.onTick(player);
-            if (player == null) {
+            if (player != null) {
+                gp.onTick(player);
+            } else {
                 // Kick players who disconnect too long.
                 long discTicks = gp.getDisconnectedTicks();
                 if (discTicks > plugin.getDisconnectLimit() * 20) {
@@ -317,7 +318,7 @@ public final class ColorfallGame {
                             Location location = block.getLocation().add(0.5, 1.01, 0.5);
                             Item item = location.getWorld().dropItem(location, stack);
                             item.setGlowing(true);
-                            item.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                            item.setVelocity(new Vector(0, 0, 0));
                         } else {
                             player.getInventory().addItem(stack.clone());
                         }
@@ -338,12 +339,7 @@ public final class ColorfallGame {
                 if (!gp.isPlayer()) continue;
                 Player player = Bukkit.getPlayer(gp.getUuid());
                 if (player == null) continue;
-                Block playerBlock = player.getLocation().getBlock();
-                if (!gameMap.isBlockWithinCuboid(playerBlock)) {
-                    if (((LivingEntity) player).isOnGround() || player.isSwimming() || playerBlock.isLiquid()) {
-                        player.teleport(gp.getSpawnLocation());
-                    }
-                }
+                checkOutOfBounds(player, gp);
             }
             break;
             // Restore blocks.
@@ -357,6 +353,22 @@ public final class ColorfallGame {
             break;
         default:
             break;
+        }
+    }
+
+    private void checkOutOfBounds(Player player, GamePlayer gp) {
+        Block playerBlock = player.getLocation().getBlock();
+        if (!gameMap.isBlockWithinCuboid(playerBlock)) {
+            player.setHealth(20);
+            player.setVelocity(new Vector().zero());
+            Location location = gp.getSpawnLocation();
+            if (location == null) location = player.getWorld().getSpawnLocation();
+            player.teleport(location);
+            player.setHealth(20.0);
+            if (plugin.getGame() != null && plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
+                player.setGameMode(GameMode.SPECTATOR);
+                gp.died();
+            }
         }
     }
 
@@ -697,6 +709,7 @@ public final class ColorfallGame {
         world.setGameRule(GameRule.DO_TILE_DROPS, false);
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_FIRE_TICK, false);
+        world.setGameRule(GameRule.FALL_DAMAGE, true);
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
         WorldBorder worldBorder = world.getWorldBorder();
