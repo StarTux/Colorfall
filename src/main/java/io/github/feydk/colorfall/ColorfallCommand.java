@@ -6,12 +6,14 @@ import com.cavetale.core.command.CommandWarn;
 import com.cavetale.mytems.util.Text;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+import static com.winthier.creative.review.MapReviewMenu.starComponent;
 import static net.kyori.adventure.text.Component.empty;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.newline;
@@ -84,12 +86,18 @@ public final class ColorfallCommand extends AbstractCommand<ColorfallPlugin> {
     public void openMapBook(Player player) {
         List<ColorfallWorld> colorfallWorlds = new ArrayList<>();
         colorfallWorlds.addAll(plugin.colorfallWorlds.values());
-        Collections.sort(colorfallWorlds, (a, b) -> String.CASE_INSENSITIVE_ORDER.compare(a.getDisplayName(), b.getDisplayName()));
+        Collections.sort(colorfallWorlds, Comparator.comparing(ColorfallWorld::getDisplayName,
+                                                               String.CASE_INSENSITIVE_ORDER));
+        Collections.sort(colorfallWorlds, Comparator.comparing(ColorfallWorld::getScore).reversed());
         List<Component> lines = new ArrayList<>();
         for (ColorfallWorld colorfallWorld : colorfallWorlds) {
             List<Component> tooltip = new ArrayList<>();
             Component displayName = text(colorfallWorld.getDisplayName(), BLUE);
             tooltip.add(displayName);
+            if (colorfallWorld.score > 0) {
+                final int stars = (int) Math.round((double) colorfallWorld.score / 20.0);
+                tooltip.add(starComponent(stars));
+            }
             tooltip.addAll(Text.wrapLore(colorfallWorld.getDescription(), c -> c.color(GRAY)));
             lines.add(displayName
                       .hoverEvent(showText(join(separator(newline()), tooltip)))

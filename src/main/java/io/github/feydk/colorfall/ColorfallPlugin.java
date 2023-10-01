@@ -1,12 +1,13 @@
 package io.github.feydk.colorfall;
 
-import com.cavetale.core.playercache.PlayerCache;
+import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.cavetale.mytems.util.BlockColor;
 import com.cavetale.server.ServerPlugin;
+import com.winthier.creative.BuildWorld;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,6 +80,7 @@ public final class ColorfallPlugin extends JavaPlugin {
         saveResource("powerups.yml", false);
         saveResource("rounds.yml", false);
         loadConf();
+        loadBuildWorlds();
         // Retiring the config value for now.
         Bukkit.getScheduler().runTaskTimer(this, this::tick, 1, 1);
         getServer().getPluginManager().registerEvents(new EventListener(this), this);
@@ -131,24 +133,17 @@ public final class ColorfallPlugin extends JavaPlugin {
         worldNames = getConfig().getStringList("maps");
         loadPowerups();
         loadRounds();
-        final File creativeFile = new File("/home/cavetale/creative/plugins/Creative/worlds.yml");
-        final ConfigurationSection creativeConfig = creativeFile.exists()
-            ? YamlConfiguration.loadConfiguration(creativeFile)
-            : new YamlConfiguration();
+    }
+
+    protected void loadBuildWorlds() {
         colorfallWorlds.clear();
-        for (Map<?, ?> map : creativeConfig.getMapList("worlds")) {
-            ConfigurationSection worldConfig = creativeConfig.createSection("_tmp", map);
-            String path = worldConfig.getString("path");
-            if (!worldNames.contains(path)) continue;
+        for (BuildWorld buildWorld : BuildWorld.findMinigameWorlds(MinigameMatchType.COLORFALL, true)) {
             ColorfallWorld cw = new ColorfallWorld();
-            cw.setPath(path);
-            cw.setDisplayName(worldConfig.getString("name"));
-            String uuidString = worldConfig.getString("owner.uuid");
-            if (uuidString != null) {
-                UUID uuid = UUID.fromString(uuidString);
-                cw.setDescription(PlayerCache.nameForUuid(uuid));
-            }
-            colorfallWorlds.put(path, cw);
+            cw.setPath(buildWorld.getPath());
+            cw.setDisplayName(buildWorld.getName());
+            cw.setDescription(String.join(" ", buildWorld.getBuilderNames()));
+            cw.setScore(buildWorld.getRow().getVoteScore());
+            colorfallWorlds.put(cw.path, cw);
         }
         getLogger().info(colorfallWorlds.size() + " worlds loaded");
     }
@@ -235,6 +230,7 @@ public final class ColorfallPlugin extends JavaPlugin {
                 if (ticksWaiting == 0) {
                     schedulingGame = true;
                     saveState.votes.clear();
+                    loadBuildWorlds();
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         remindToVote(player);
                     }
