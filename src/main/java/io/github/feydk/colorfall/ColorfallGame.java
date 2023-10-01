@@ -5,6 +5,8 @@ import com.cavetale.core.event.minigame.MinigameMatchCompleteEvent;
 import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.font.VanillaItems;
 import com.cavetale.mytems.Mytems;
+import com.winthier.creative.BuildWorld;
+import com.winthier.creative.review.MapReview;
 import io.github.feydk.colorfall.util.Players;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -271,6 +273,14 @@ public final class ColorfallGame {
             // Restore the map if this state was entered in the removing blocks round state.
             if (roundState == RoundState.REMOVING_BLOCKS) {
                 gameMap.restoreBlocks(paintedBlocks);
+            }
+            // Map Vote
+            final World world = gameMap.getWorld();
+            if (world != null && creativeWorldName != null) {
+                BuildWorld buildWorld = BuildWorld.findWithPath(creativeWorldName);
+                if (buildWorld != null) {
+                    MapReview.start(world, buildWorld).remindAllOnce();
+                }
             }
         default:
             break;
@@ -701,7 +711,10 @@ public final class ColorfallGame {
         gameMap = null;
     }
 
+    private String creativeWorldName;
+
     public void loadMap(String worldName) {
+        this.creativeWorldName = worldName;
         plugin.getLogger().info("Loading world: " + worldName);
         World world = ColorfallLoader.loadWorld(plugin, worldName);
         world.setDifficulty(Difficulty.HARD);
