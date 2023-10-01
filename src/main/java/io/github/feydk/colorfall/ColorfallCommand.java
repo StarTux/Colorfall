@@ -95,7 +95,7 @@ public final class ColorfallCommand extends AbstractCommand<ColorfallPlugin> {
             Component displayName = text(colorfallWorld.getDisplayName(), BLUE);
             tooltip.add(displayName);
             if (colorfallWorld.score > 0) {
-                final int stars = (int) Math.round((double) colorfallWorld.score / 20.0);
+                final int stars = (int) Math.round((double) colorfallWorld.score / 100.0);
                 tooltip.add(starComponent(stars));
             }
             tooltip.addAll(Text.wrapLore(colorfallWorld.getDescription(), c -> c.color(GRAY)));
