@@ -92,14 +92,15 @@ public final class ColorfallCommand extends AbstractCommand<ColorfallPlugin> {
         List<Component> lines = new ArrayList<>();
         for (ColorfallWorld colorfallWorld : colorfallWorlds) {
             List<Component> tooltip = new ArrayList<>();
-            Component displayName = text(colorfallWorld.getDisplayName(), BLUE);
-            tooltip.add(displayName);
+            String raw = colorfallWorld.displayName;
+            if (raw.length() > 16) raw = raw.substring(0, 16);
+            tooltip.add(text(raw, BLUE));
             if (colorfallWorld.score > 0) {
                 final int stars = (int) Math.round((double) colorfallWorld.score / 100.0);
                 tooltip.add(starComponent(stars));
             }
             tooltip.addAll(Text.wrapLore(colorfallWorld.getDescription(), c -> c.color(GRAY)));
-            lines.add(displayName
+            lines.add(text(colorfallWorld.getDisplayName(), BLUE)
                       .hoverEvent(showText(join(separator(newline()), tooltip)))
                       .clickEvent(runCommand("/colorfall vote " + colorfallWorld.getPath())));
         }
