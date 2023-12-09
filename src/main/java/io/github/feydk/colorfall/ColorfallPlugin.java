@@ -1,5 +1,6 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.core.chat.Chat;
 import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
@@ -319,12 +320,12 @@ public final class ColorfallPlugin extends JavaPlugin {
     }
 
     public void remindToVote(Player player) {
-        player.sendMessage(textOfChildren(newline(),
-                                          Mytems.ARROW_RIGHT,
-                                          (text(" Click here to vote on the next map", GREEN)
-                                           .hoverEvent(showText(text("Map Selection", GRAY)))
-                                           .clickEvent(runCommand("/colorfall vote"))),
-                                          newline()));
+        Chat.sendNoLog(player, textOfChildren(newline(),
+                                              Mytems.ARROW_RIGHT,
+                                              (text(" Click here to vote on the next map", GREEN)
+                                               .hoverEvent(showText(text("Map Selection", GRAY)))
+                                               .clickEvent(runCommand("/colorfall vote"))),
+                                              newline()));
     }
 
     public GamePlayer getGamePlayer(Player player) {
