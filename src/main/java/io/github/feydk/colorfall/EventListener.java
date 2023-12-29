@@ -1,10 +1,10 @@
 package io.github.feydk.colorfall;
 
+import com.cavetale.core.event.hud.PlayerHudEvent;
+import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
-import com.cavetale.sidebar.PlayerSidebarEvent;
-import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -286,7 +286,7 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler
-    protected void onPlayerSidebar(PlayerSidebarEvent event) {
+    protected void onPlayerHud(PlayerHudEvent event) {
         List<Component> lines = new ArrayList<>();
         lines.add(plugin.TITLE);
         if (plugin.game != null && !plugin.game.obsolete) {
@@ -326,6 +326,6 @@ public final class EventListener implements Listener {
             lines.addAll(Highscore.sidebar(plugin.highscore, TrophyCategory.MEDAL));
         }
         if (lines.isEmpty()) return;
-        event.add(plugin, Priority.HIGHEST, lines);
+        event.sidebar(PlayerHudPriority.HIGHEST, lines);
     }
 }

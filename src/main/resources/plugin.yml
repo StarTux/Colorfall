@@ -8,7 +8,7 @@ authors: [ feydk, StarTux ]
 description: Colorfall Minigame
 website: https://cavetale.com
 
-depend: [Core, Mytems, Sidebar, Server, Fam, Creative]
+depend: [Core, Mytems, Server, Fam, Creative]
 softdepend: []
 
 commands:
