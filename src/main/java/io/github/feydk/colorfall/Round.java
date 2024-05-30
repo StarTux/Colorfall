@@ -3,7 +3,6 @@ package io.github.feydk.colorfall;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Material;
@@ -87,7 +86,7 @@ public final class Round {
         if (powerups.size() == 0) {
             return list;
         }
-        for (Entry<ItemStack, Double> entry : powerups.entrySet()) {
+        for (Map.Entry<ItemStack, Double> entry : powerups.entrySet()) {
             double chance = entry.getValue();
             double number = Math.random() * 100.0;
             if (number < chance) {

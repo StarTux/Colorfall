@@ -27,6 +27,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Sign;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.sign.Side;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -127,7 +128,7 @@ public final class GameMap {
         for (Block b : replacedBlocks) {
             if (b.getType() != Material.AIR && b.getBlockData().equals(currentColor)) {
                 Color color = Color.fromBlockData(currentColor);
-                world.spawnParticle(Particle.REDSTONE, b.getLocation().add(.5, 1.5, .5),
+                world.spawnParticle(Particle.DUST, b.getLocation().add(.5, 1.5, .5),
                                     5, .5f, .5f, .5f, .01f,
                                     new Particle.DustOptions(color.toBukkitColor(), 1.0f));
             }
@@ -280,7 +281,7 @@ public final class GameMap {
                     continue;
                 }
                 List<String> lines = new ArrayList<>();
-                for (Component line : signBlock.lines()) {
+                for (Component line : signBlock.getSide(Side.FRONT).lines()) {
                     lines.add(PlainTextComponentSerializer.plainText().serialize(line).toLowerCase());
                 }
                 String firstLine = lines.get(0);
