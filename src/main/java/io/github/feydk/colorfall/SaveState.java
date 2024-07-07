@@ -5,7 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import lombok.Getter;
 
+@Getter
 public final class SaveState {
     protected List<String> worlds = new ArrayList<>();
     protected boolean event = false;
