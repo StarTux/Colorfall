@@ -5,7 +5,6 @@ import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
-import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,10 +17,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -32,10 +29,11 @@ import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
@@ -44,8 +42,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
@@ -248,13 +246,10 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler
-    public void onProjectileCollide(ProjectileCollideEvent event) {
+    public void onProjectileHit(ProjectileHitEvent event) {
         if (plugin.getGame() == null) return;
-        Projectile proj = event.getEntity();
-        if (!(proj instanceof Snowball)) return;
-        Entity target = event.getCollidedWith();
-        if (!(target instanceof Player)) return;
-        Player victim = (Player) target;
+        if (!(event.getEntity() instanceof Snowball proj)) return;
+        if (!(event.getHitEntity() instanceof Player victim)) return;
         event.setCancelled(true);
         if (plugin.getGame().getRoundState() != RoundState.RUNNING) return;
         Vector velo = proj.getVelocity().normalize().setY(0);
