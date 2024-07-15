@@ -5,10 +5,17 @@ import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.winthier.playercache.PlayerCache;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -75,6 +82,9 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
         scoreNode.addChild("reward").denyTabCompletion()
             .description("Reward players")
             .senderCaller(this::scoreReward);
+        scoreNode.addChild("dump").denyTabCompletion()
+            .description("Dump scores to file")
+            .senderCaller(this::scoreDump);
     }
 
     boolean maps(Player player, String[] args) {
@@ -218,5 +228,19 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
     private void scoreReward(CommandSender sender) {
         int count = plugin.rewardHighscore();
         sender.sendMessage(text("Rewarded " + count + " players", AQUA));
+    }
+
+    private void scoreDump(CommandSender sender) {
+        final File file = new File(plugin.getDataFolder(), "score.dump");
+        try (PrintStream out = new PrintStream(file, StandardCharsets.UTF_8)) {
+            for (Map.Entry<UUID, Integer> entry : plugin.getSaveState().getScores().entrySet()) {
+                if (entry.getValue() <= 0) continue;
+                final UUID uuid = entry.getKey();
+                out.println("" + uuid + " " + PlayerCache.nameForUuid(uuid));
+            }
+        } catch (IOException ioe) {
+            plugin.getLogger().log(Level.SEVERE, "" + file, ioe);
+        }
+        sender.sendMessage(text("Scores dumped to " + file, YELLOW));
     }
 }
