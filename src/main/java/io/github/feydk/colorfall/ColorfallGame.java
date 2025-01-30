@@ -294,10 +294,12 @@ public final class ColorfallGame {
             // We started a new round.
         case RUNNING:
             paintedBlocks.clear();
-            currentRoundRandomized = false;
             currentRound = null;
             currentRoundIdx++;
             setColorForRound();
+            // Randomize every round
+            gameMap.randomizeBlocks();
+            currentRoundRandomized = true;
             disallowRandomize = false;
             Round round = getRound(currentRoundIdx);
             currentRoundDuration = round.getDuration();
@@ -343,6 +345,7 @@ public final class ColorfallGame {
             break;
             // Round time is over, remove blocks.
         case REMOVING_BLOCKS:
+            gameMap.clearHighlightBlocks();
             world.setPVP(false);
             gameMap.removeBlocks(currentColor);
             for (GamePlayer gp : plugin.getGamePlayers().values()) {
@@ -498,10 +501,6 @@ public final class ColorfallGame {
                     player.resetTitle();
                 }
             }
-            // Show/refresh particle effect above the blocks.
-            //gameMap.animateBlocks(currentColor);
-            gameMap.highlightBlocks(currentColor);
-            gameMap.animateBlocks(currentColor);
             // Handle randomize events.
             if (round.getRandomize() && !currentRoundRandomized) {
                 // Fire this about 2 seconds before we're half way through the round, but no later than 2 seconds after half way.
@@ -511,7 +510,6 @@ public final class ColorfallGame {
                     && randomizeCooldown <= 0;
                 if (doRandomize) {
                     gameMap.randomizeBlocks();
-                    gameMap.highlightBlocks(currentColor);
                     currentRoundRandomized = true;
                     randomizeCooldown = 5 * 20;
                     Component title = join(noSeparators(),
@@ -532,9 +530,13 @@ public final class ColorfallGame {
                     }
                 }
             }
+        }
+        if (roundState == RoundState.RUNNING) {
             if (roundTimeLeft <= 0) {
-                gameMap.clearHighlightBlocks();
                 newState = RoundState.REMOVING_BLOCKS;
+            } else {
+                gameMap.animateBlocks(currentColor);
+                gameMap.highlightBlocks(currentColor);
             }
         }
         if (roundState == RoundState.REMOVING_BLOCKS && roundTimeLeft <= 0) {
@@ -650,7 +652,6 @@ public final class ColorfallGame {
                 if (randomizeCooldown <= 0) {
                     randomizeCooldown = 5 * 20;
                     gameMap.randomizeBlocks();
-                    gameMap.highlightBlocks(currentColor);
                     itemInHand.subtract(1);
                     plugin.getGamePlayer(p).addRandomizer();
                     if (plugin.saveState.event) {
@@ -729,6 +730,8 @@ public final class ColorfallGame {
         worldBorder.setSize(8192);
         gameMap = new GameMap(worldName, this, world);
         gameMap.process();
+        setColorForRound();
+        gameMap.randomizeBlocks();
         if (gameMap.getStartingTime() == -1) {
             world.setTime(1000L);
         } else {

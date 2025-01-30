@@ -129,7 +129,7 @@ public final class GameMap {
             if (b.getType() != Material.AIR && b.getBlockData().equals(currentColor)) {
                 Color color = Color.fromBlockData(currentColor);
                 world.spawnParticle(Particle.DUST, b.getLocation().add(.5, 1.5, .5),
-                                    5, .5f, .5f, .5f, .01f,
+                                    1, .5f, .5f, .5f, .01f,
                                     new Particle.DustOptions(color.toBukkitColor(), 1.0f));
             }
         }
@@ -248,9 +248,6 @@ public final class GameMap {
         for (Point2D point : processedChunks) {
             findBlocksToBeReplaced((int) point.getX(), (int) point.getY());
         }
-        // Finally replace the blocks we found in the step above.
-        // The reason I don't do all this in one step is that I want to guarantee a certain "quality" of the block replacement across all chunks.
-        replaceBlocks();
         info("Done processing:"
              + " [block]=" + coloredBlocks.size()
              + " [color]=" + colorPool.size()
@@ -376,8 +373,8 @@ public final class GameMap {
     // For now it's real simple by distributing every color from the pool evenly(-ish) throughout the map.
     // This makes sure that every color is represented.
     private void replaceBlocks() {
-        int numberOfBlocks = replacedBlocks.size();
-        int numberOfColors = colorPool.size();
+        final int numberOfBlocks = replacedBlocks.size();
+        final int numberOfColors = colorPool.size();
         if (numberOfColors == 0 || numberOfBlocks == 0) {
             game.denyStart = true;
             warn("No [BLOCK] and/or [COLOR] configured. Skipping the part that replaces blocks in the map");
@@ -396,28 +393,35 @@ public final class GameMap {
             game.debugStrings.add("There must be two and only two [BOUNDARY] signs.");
             return;
         }
-        int ofEachColor = numberOfBlocks / numberOfColors;
-        // Shuffle the list of blocks a bit to get some randomization.
-        Collections.shuffle(replacedBlocks);
-        int count = 0;
+        // Determine correct and wrong colors
+        final BlockData correctColor = game.getCurrentColor();
+        final List<BlockData> wrongColors = new ArrayList<>();
         for (BlockData color : colorPool) {
-            for (int i = 1; i <= ofEachColor; i++) {
-                // Color the next block.
-                Block toColor = replacedBlocks.get(count);
-                toColor.setBlockData(color, false);
-                count++;
-            }
+            if (!color.equals(correctColor)) wrongColors.add(color);
         }
-        // Handle uneven ofEachColor.
-        if (count < numberOfBlocks) {
-            Random r = new Random(System.currentTimeMillis());
-            for (int i = count; i < numberOfBlocks; i++) {
-                // Pick a random color.
-                BlockData color = colorPool.get(r.nextInt(numberOfColors));
-                Block toColor = replacedBlocks.get(i);
-                toColor.setBlockData(color, false);
-                count++;
-            }
+        if (wrongColors.isEmpty()) wrongColors.add(correctColor); // failsafe
+        Collections.shuffle(wrongColors);
+        // Calculate new color distribution.  There is always a
+        // certain number of correct colors plus some wrong colors.
+        double correctFraction = 0.5;
+        for (int i = 0; i < game.getCurrentRoundIdx(); i += 1) {
+            correctFraction *= 0.9;
+        }
+        final int correctColorCount = Math.max(1, (int) ((double) numberOfBlocks * correctFraction));
+        final int wrongColorCount = numberOfBlocks - correctColorCount;
+        game.getPlugin().getLogger().info("Correct Colors: "
+                                          + Math.round(correctFraction * 100.0) + "% "
+                                          + correctColorCount + "/" + numberOfBlocks);
+        final List<BlockData> newColors = new ArrayList<>(numberOfBlocks);
+        for (int i = 0; i < correctColorCount; i += 1) {
+            newColors.add(correctColor);
+        }
+        for (int i = 0; i < wrongColorCount; i += 1) {
+            newColors.add(wrongColors.get(i % wrongColors.size()));
+        }
+        Collections.shuffle(newColors);
+        for (int i = 0; i < numberOfBlocks; i += 1) {
+            replacedBlocks.get(i).setBlockData(newColors.get(i), false);
         }
     }
 
