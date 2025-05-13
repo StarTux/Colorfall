@@ -2,6 +2,7 @@ package io.github.feydk.colorfall;
 
 import com.cavetale.core.event.hud.PlayerHudEvent;
 import com.cavetale.core.event.hud.PlayerHudPriority;
+import com.cavetale.core.event.player.PlayerTPAEvent;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
@@ -341,5 +342,11 @@ public final class EventListener implements Listener {
         if (event.getEntity().getType() == EntityType.FALLING_BLOCK) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler
+    private void onPlayerTPA(PlayerTPAEvent event) {
+        if (plugin.getGame() == null) return;
+        event.setCancelled(true);
     }
 }
