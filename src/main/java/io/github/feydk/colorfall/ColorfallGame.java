@@ -441,6 +441,7 @@ public final class ColorfallGame {
 
     public void bringAllPlayers() {
         for (Player player : plugin.getLobbyWorld().getPlayers()) {
+            Players.reset(player);
             GamePlayer gp = getGamePlayer(player);
             gp.setPlayer();
             Location loc = gameMap.dealSpawnLocation();

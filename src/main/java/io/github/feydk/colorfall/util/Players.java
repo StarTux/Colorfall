@@ -23,6 +23,8 @@ public final class Players {
         }
         player.setVelocity(new Vector());
         player.setFallDistance(0f);
+        player.setWalkSpeed(0.2f);
+        player.setFlySpeed(0.1f);
     }
 
     public static void heal(Player player) {

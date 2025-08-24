@@ -5,6 +5,7 @@ import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.cavetale.core.event.player.PlayerTPAEvent;
 import com.cavetale.fam.trophy.Highscore;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
+import io.github.feydk.colorfall.util.Players;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public final class EventListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         final Player player = event.getPlayer();
         if (player.getWorld().equals(plugin.getLobbyWorld())) {
-            player.setGameMode(GameMode.ADVENTURE);
+            Players.reset(player);
             return;
         }
         final ColorfallGame game = ColorfallGame.in(player.getWorld());
