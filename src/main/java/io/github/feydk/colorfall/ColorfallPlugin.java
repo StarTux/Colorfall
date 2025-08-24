@@ -198,7 +198,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             MapVote.stop(MinigameMatchType.COLORFALL);
             return;
         }
-        if (!MapVote.isActive(MinigameMatchType.COLORFALL) && availablePlayers > 2) {
+        if (!MapVote.isActive(MinigameMatchType.COLORFALL) && availablePlayers >= 2) {
             MapVote.start(MinigameMatchType.COLORFALL, mapVote -> {
                     mapVote.setTitle(TITLE);
                     mapVote.setLobbyWorld(getLobbyWorld());
