@@ -13,7 +13,8 @@ import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor @Getter @Setter
 public final class GamePlayer {
-    protected final ColorfallPlugin plugin;
+    private final ColorfallPlugin plugin;
+    protected final ColorfallGame game;
     protected final UUID uuid;
     protected boolean hasJoinedBefore = false;
     protected PlayerType type;
@@ -108,9 +109,9 @@ public final class GamePlayer {
             // To avoid having spectators holding stuff in their hand.
             Players.clearInventory(player);
             setSpectator();
-            plugin.getGame().onPlayerElimination(player);
+            game.onPlayerElimination(player);
         } else {
-            plugin.getGame().onPlayerDeath(player);
+            game.onPlayerDeath(player);
         }
     }
 

@@ -11,7 +11,7 @@ import lombok.Getter;
 public final class SaveState {
     protected List<String> worlds = new ArrayList<>();
     protected boolean event = false;
-    protected boolean eventAuto = false;
+    protected boolean pause = false;
     protected Map<UUID, Integer> scores = new HashMap<>();
     protected Map<UUID, String> votes = new HashMap<>();
 

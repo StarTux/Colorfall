@@ -1,8 +1,9 @@
 package io.github.feydk.colorfall;
 
 import com.cavetale.mytems.util.BlockColor;
+import com.winthier.creative.BuildWorld;
+import com.winthier.creative.file.Files;
 import io.github.feydk.colorfall.util.Players;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +17,6 @@ import lombok.Value;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -59,9 +59,9 @@ public final class GameMap {
     private int creditSignsFound;
     private int timeSignsFound;
 
-    private World world;
+    private final BuildWorld buildWorld;
+    private final World world;
     private ColorfallGame game;
-    private final String worldName;
     private final int chunkRadius = 8;
     private boolean spawnLocationsRandomized;
     private int spawnLocationIter = 0;
@@ -76,10 +76,10 @@ public final class GameMap {
     private double maxY;
     private Map<Block, Entity> highlightEntities = new HashMap<>();
 
-    public GameMap(final String worldName, final ColorfallGame game, final World world) {
-        this.worldName = worldName;
-        this.world = world;
+    public GameMap(final ColorfallGame game, final BuildWorld buildWorld, final World world) {
         this.game = game;
+        this.buildWorld = buildWorld;
+        this.world = world;
     }
 
     public int getStartingTime() {
@@ -179,11 +179,11 @@ public final class GameMap {
     }
 
     private void warn(String msg) {
-        game.getPlugin().getLogger().warning("[" + worldName + "] " + msg);
+        game.getPlugin().getLogger().warning("[" + world.getName() + "] " + msg);
     }
 
     private void info(String msg) {
-        game.getPlugin().getLogger().info("[" + worldName + "] " + msg);
+        game.getPlugin().getLogger().info("[" + world.getName() + "] " + msg);
     }
 
     public Location dealSpawnLocation() {
@@ -533,14 +533,12 @@ public final class GameMap {
         clearHighlightBlocks();
         for (Player player : world.getPlayers()) {
             Players.heal(player);
-            player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            player.eject();
+            player.leaveVehicle();
+            player.teleport(game.getPlugin().getLobbyWorld().getSpawnLocation());
             Players.reset(player);
         }
-        File dir = world.getWorldFolder();
-        if (!Bukkit.unloadWorld(world, false)) {
-            throw new IllegalStateException("Cannot unload world: " + world.getName());
-        }
-        ColorfallLoader.deleteFiles(dir);
+        Files.deleteWorld(world);
     }
 }
 

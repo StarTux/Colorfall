@@ -5,5 +5,6 @@ public enum GameState {
     WAIT_FOR_PLAYERS,
     COUNTDOWN_TO_START,
     STARTED,
-    END
+    END,
+    ;
 }

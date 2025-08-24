@@ -1,48 +1,39 @@
 package io.github.feydk.colorfall;
 
-import com.cavetale.core.chat.Chat;
 import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
-import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.cavetale.mytems.util.BlockColor;
 import com.cavetale.server.ServerPlugin;
 import com.winthier.creative.BuildWorld;
+import com.winthier.creative.vote.MapVote;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
 import lombok.Getter;
-import lombok.Setter;
-import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemorySection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import static net.kyori.adventure.text.Component.join;
-import static net.kyori.adventure.text.Component.newline;
+import static com.cavetale.afk.AFKPlugin.isAfk;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.Component.textOfChildren;
-import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
-import static net.kyori.adventure.text.event.ClickEvent.runCommand;
-import static net.kyori.adventure.text.event.HoverEvent.showText;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @Getter
 public final class ColorfallPlugin extends JavaPlugin {
+    private static ColorfallPlugin instance;
     protected final Map<String, ItemStack> powerups = new HashMap<String, ItemStack>();
     protected final Map<Integer, Round> rounds = new HashMap<Integer, Round>();
-    protected final Map<UUID, GamePlayer> gamePlayers = new HashMap<>();
     protected final ColorfallAdminCommand colorfallAdminCommand = new ColorfallAdminCommand(this);
     protected final ColorfallCommand colorfallCommand = new ColorfallCommand(this);
     // Config stuff.
@@ -52,25 +43,30 @@ public final class ColorfallPlugin extends JavaPlugin {
     protected int startedDuration;
     protected int endDuration;
     protected int lives;
-    protected List<String> worldNames;
-    protected BossBar bossBar;
     //
-    @Setter protected ColorfallGame game;
+    private final List<ColorfallGame> games = new ArrayList<>();
     protected SaveState saveState;
     protected int ticksWaiting;
-    protected boolean schedulingGame; // informal
     protected List<Highscore> highscore = List.of();
-    public static final Component TITLE = join(noSeparators(),
-                                               text("C", BlockColor.ORANGE.textColor),
-                                               text("o", BlockColor.MAGENTA.textColor),
-                                               text("l", BlockColor.LIGHT_BLUE.textColor),
-                                               text("o", BlockColor.YELLOW.textColor),
-                                               text("r", BlockColor.LIME.textColor),
-                                               text("f", BlockColor.PINK.textColor),
-                                               text("a", BlockColor.BLUE.textColor),
-                                               text("l", BlockColor.GREEN.textColor),
-                                               text("l", BlockColor.RED.textColor));
+    public static final Component TITLE = textOfChildren(text("C", BlockColor.ORANGE.textColor),
+                                                         text("o", BlockColor.MAGENTA.textColor),
+                                                         text("l", BlockColor.LIGHT_BLUE.textColor),
+                                                         text("o", BlockColor.YELLOW.textColor),
+                                                         text("r", BlockColor.LIME.textColor),
+                                                         text("f", BlockColor.PINK.textColor),
+                                                         text("a", BlockColor.BLUE.textColor),
+                                                         text("l", BlockColor.GREEN.textColor),
+                                                         text("l", BlockColor.RED.textColor));
     protected final Map<String, ColorfallWorld> colorfallWorlds = new HashMap<>();
+
+    public static ColorfallPlugin colorfallPlugin() {
+        return instance;
+    }
+
+    @Override
+    public void onLoad() {
+        instance = this;
+    }
 
     @Override
     public void onEnable() {
@@ -81,30 +77,20 @@ public final class ColorfallPlugin extends JavaPlugin {
         saveResource("powerups.yml", false);
         saveResource("rounds.yml", false);
         loadConf();
-        loadBuildWorlds();
         // Retiring the config value for now.
         Bukkit.getScheduler().runTaskTimer(this, this::tick, 1, 1);
         getServer().getPluginManager().registerEvents(new EventListener(this), this);
-        bossBar = BossBar.bossBar(Component.text("Colorfall"), 0.0f,
-                                  BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
         loadSave();
         computeHighscore();
-        for (Player player : getServer().getOnlinePlayers()) {
-            enter(player);
-        }
     }
 
     @Override
     public void onDisable() {
         save();
-        for (Player player : getServer().getOnlinePlayers()) {
-            exit(player);
+        for (ColorfallGame game : games) {
+            game.stop();
         }
-        if (game != null) {
-            game.cleanUpMap();
-            game = null;
-        }
-        gamePlayers.clear();
+        games.clear();
         ServerPlugin.getInstance().setServerSidebarLines(null);
     }
 
@@ -116,14 +102,6 @@ public final class ColorfallPlugin extends JavaPlugin {
         Json.save(new File(getDataFolder(), "save.json"), saveState, true);
     }
 
-    public void enter(Player player) {
-        player.showBossBar(bossBar);
-    }
-
-    public void exit(Player player) {
-        player.hideBossBar(bossBar);
-    }
-
     protected void loadConf() {
         disconnectLimit = getConfig().getInt("general.disconnectLimit");
         waitForPlayersDuration = getConfig().getInt("general.waitForPlayersDuration", waitForPlayersDuration);
@@ -131,22 +109,8 @@ public final class ColorfallPlugin extends JavaPlugin {
         startedDuration = getConfig().getInt("general.startedDuration");
         endDuration = getConfig().getInt("general.endDuration");
         lives = getConfig().getInt("general.lives");
-        worldNames = getConfig().getStringList("maps");
         loadPowerups();
         loadRounds();
-    }
-
-    protected void loadBuildWorlds() {
-        colorfallWorlds.clear();
-        for (BuildWorld buildWorld : BuildWorld.findMinigameWorlds(MinigameMatchType.COLORFALL, true)) {
-            ColorfallWorld cw = new ColorfallWorld();
-            cw.setPath(buildWorld.getPath());
-            cw.setDisplayName(buildWorld.getName());
-            cw.setDescription(String.join(" ", buildWorld.getBuilderNames()));
-            cw.setScore(buildWorld.getRow().getVoteScore());
-            colorfallWorlds.put(cw.path, cw);
-        }
-        getLogger().info(colorfallWorlds.size() + " worlds loaded");
     }
 
     protected void loadPowerups() {
@@ -197,152 +161,72 @@ public final class ColorfallPlugin extends JavaPlugin {
         }
     }
 
-    void tick() {
-        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-        if (players.isEmpty()) {
-            if (game != null) {
-                game.disable();
-                game = null;
-            }
-            gamePlayers.clear();
-            ticksWaiting = 0;
-            schedulingGame = false;
-            ServerPlugin.getInstance().setServerSidebarLines(null);
-            return;
-        }
-        boolean test = game != null && game.isTest();
-        if (!test && players.size() < 2) {
-            bossBar.name(Component.text("Waiting for players...", NamedTextColor.LIGHT_PURPLE));
-            ticksWaiting = 0;
-            schedulingGame = false;
-            return;
-        }
-        if (game == null) {
-            if (saveState.event && !saveState.eventAuto) {
-                ticksWaiting = 0;
-                schedulingGame = false;
-                bossBar.name(Component.text("Preparing Event...", NamedTextColor.GREEN));
-                bossBar.progress(1.0f);
-                ServerPlugin.getInstance().setServerSidebarLines(null);
-            } else if (ticksWaiting < waitForPlayersDuration * 20) {
-                bossBar.name(Component.text("Waiting for players...", NamedTextColor.LIGHT_PURPLE));
-                float progress = (float) ticksWaiting / (float) (waitForPlayersDuration * 20);
-                bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
-                if (ticksWaiting == 0) {
-                    schedulingGame = true;
-                    saveState.votes.clear();
-                    loadBuildWorlds();
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        remindToVote(player);
-                    }
-                }
-                ticksWaiting += 1;
-                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                         Component.text(players.size() + " waiting...",
-                                                                                        NamedTextColor.GRAY)));
-                return;
-            } else {
-                schedulingGame = false;
-                loadPowerups();
-                loadRounds();
-                game = new ColorfallGame(this);
-                game.enable();
-            }
-        }
-        if (game != null && game.isObsolete()) {
-            stopGame();
-        } else if (game != null && game.getState() == GameState.INIT) {
-            // Load New World
-            gamePlayers.clear();
-            GameMap oldMap = game.getGameMap();
-            final String worldName;
-            if (!saveState.votes.isEmpty()) {
-                Map<String, Integer> stats = new HashMap<>();
-                List<ColorfallWorld> randomWorlds = new ArrayList<>();
-                for (String it : saveState.votes.values()) {
-                    stats.compute(it, (s, i) -> i != null ? i + 1 : 1);
-                    ColorfallWorld cw = colorfallWorlds.get(it);
-                    if (cw != null) randomWorlds.add(cw);
-                }
-                getLogger().info("Votes: " + stats);
-                assert !randomWorlds.isEmpty();
-                ColorfallWorld colorfallWorld = randomWorlds.get(ThreadLocalRandom.current().nextInt(randomWorlds.size()));
-                worldName = colorfallWorld.getPath();
-            } else {
-                if (saveState.worlds.isEmpty()) {
-                    if (worldNames.isEmpty()) throw new IllegalStateException("World name is empty!");
-                    saveState.worlds.addAll(worldNames);
-                    Collections.shuffle(saveState.worlds);
-                }
-                worldName = saveState.worlds.remove(saveState.worlds.size() - 1);
-            }
-            save();
+    public void stopGame(ColorfallGame game) {
+        games.remove(game);
+        game.stop();
+    }
+
+    private void tick() {
+        for (ColorfallGame game : List.copyOf(games)) {
             if (game.isObsolete()) {
-                loadPowerups();
-                loadRounds();
-                game = new ColorfallGame(this);
-                game.enable();
-            }
-            game.loadMap(worldName);
-            game.bringAllPlayers();
-            game.setState(GameState.COUNTDOWN_TO_START);
-            ColorfallWorld cw = colorfallWorlds.get(worldName);
-            if (cw != null) {
-                getLogger().info("Loading world " + cw);
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    player.sendMessage("");
-                    player.sendMessage(textOfChildren(text("Map ", GRAY), text(cw.getDisplayName(), GREEN)));
-                    player.sendMessage(textOfChildren(text("By ", GRAY), text(cw.getDescription(), GREEN)));
-                    player.sendMessage("");
+                games.remove(game);
+                game.stop();
+            } else {
+                try {
+                    game.tick();
+                } catch (Exception e) {
+                    getLogger().log(Level.SEVERE, game.getWorldName(), e);
+                    games.remove(game);
+                    game.stop();
                 }
             }
-            if (oldMap != null) oldMap.cleanUp();
         }
-        if (game == null) return;
-        game.tick();
-        if (game.isTest()) {
-            ServerPlugin.getInstance().setServerSidebarLines(null);
-        } else {
-            switch (game.getState()) {
-            case INIT:
-            case WAIT_FOR_PLAYERS:
-            case COUNTDOWN_TO_START:
-            case STARTED:
-                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                         Component.text(game.countActivePlayers() + " playing", NamedTextColor.GRAY)));
-                break;
-            case END:
-                ServerPlugin.getInstance().setServerSidebarLines(List.of(Component.text("/colorfall", NamedTextColor.YELLOW),
-                                                                         Component.text("Game Over", NamedTextColor.GRAY)));
-            default: break;
-            }
+        scheduleMapVote();
+    }
+
+    private void scheduleMapVote() {
+        if (saveState.pause || (saveState.event && !games.isEmpty())) {
+            MapVote.stop(MinigameMatchType.COLORFALL);
+            return;
+        }
+        int availablePlayers = 0;
+        for (Player player : getLobbyWorld().getPlayers()) {
+            if (isAfk(player)) continue;
+            availablePlayers += 1;
+        }
+        if (MapVote.isActive(MinigameMatchType.COLORFALL) && availablePlayers < 2) {
+            MapVote.stop(MinigameMatchType.COLORFALL);
+            return;
+        }
+        if (!MapVote.isActive(MinigameMatchType.COLORFALL) && availablePlayers > 2) {
+            MapVote.start(MinigameMatchType.COLORFALL, mapVote -> {
+                    mapVote.setTitle(TITLE);
+                    mapVote.setLobbyWorld(getLobbyWorld());
+                    // @Setter private Consumer<MapVote> voteHandler = null;
+                    // @Setter private Consumer<MapVoteResult> callback = null;
+                    mapVote.setCallback(result -> {
+                            final BuildWorld buildWorld = result.getBuildWorldWinner();
+                            final World world = result.getLocalWorldCopy();
+                            final ColorfallGame game = new ColorfallGame(this);
+                            game.loadMap(buildWorld, world);
+                            games.add(game);
+                            game.bringAllPlayers();
+                            game.setState(GameState.COUNTDOWN_TO_START);
+                        });
+                });
         }
     }
 
-    public void remindToVote(Player player) {
-        Chat.sendNoLog(player, textOfChildren(newline(),
-                                              Mytems.ARROW_RIGHT,
-                                              (text(" Click here to vote on the next map", GREEN)
-                                               .hoverEvent(showText(text("Map Selection", GRAY)))
-                                               .clickEvent(runCommand("/colorfall vote"))),
-                                              newline()));
+    public World getLobbyWorld() {
+        return Bukkit.getWorlds().get(0);
     }
 
-    public GamePlayer getGamePlayer(Player player) {
-        GamePlayer gp = gamePlayers.computeIfAbsent(player.getUniqueId(), u -> new GamePlayer(this, u));
-        gp.setName(player.getName());
-        return gp;
-    }
-
-    public void stopGame() {
-        if (game != null) {
-            game.setState(GameState.INIT);
-            game.cleanUpMap();
-            game = null;
+    public List<String> getWorldNames(boolean requireConfirmation) {
+        final List<String> result = new ArrayList<>();
+        for (BuildWorld buildWorld : BuildWorld.findMinigameWorlds(MinigameMatchType.COLORFALL, requireConfirmation)) {
+            result.add(buildWorld.getPath());
         }
-        gamePlayers.clear();
-        ticksWaiting = 0;
-        schedulingGame = false;
+        return result;
     }
 
     protected void computeHighscore() {

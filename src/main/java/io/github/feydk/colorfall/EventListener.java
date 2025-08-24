@@ -4,10 +4,8 @@ import com.cavetale.core.event.hud.PlayerHudEvent;
 import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.cavetale.core.event.player.PlayerTPAEvent;
 import com.cavetale.fam.trophy.Highscore;
-import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.item.trophy.TrophyCategory;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
@@ -48,11 +46,7 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.spigotmc.event.player.PlayerSpawnLocationEvent;
-import static com.cavetale.core.font.Unicode.tiny;
-import static net.kyori.adventure.text.Component.join;
-import static net.kyori.adventure.text.Component.space;
 import static net.kyori.adventure.text.Component.text;
-import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @RequiredArgsConstructor
@@ -62,21 +56,20 @@ public final class EventListener implements Listener {
     // Called whenever a player joins. This could be after a player disconnect during a game, for instance.
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        plugin.enter(player);
-        if (plugin.getGame() == null) {
+        final Player player = event.getPlayer();
+        if (player.getWorld().equals(plugin.getLobbyWorld())) {
             player.setGameMode(GameMode.ADVENTURE);
-            if (plugin.schedulingGame) plugin.remindToVote(player);
             return;
         }
-        GamePlayer gp = plugin.getGamePlayer(player);
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) return;
+        final GamePlayer gp = game.getGamePlayer(player);
         gp.setDisconnectedTicks(0);
         if (gp.isSpectator()) {
             gp.setSpectator();
             return;
         }
-        if (plugin.getGame() == null) return;
-        switch (plugin.getGame().getState()) {
+        switch (game.getState()) {
         case STARTED:
             gp.setSpectator();
             break;
@@ -95,15 +88,16 @@ public final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerTeleport(PlayerTeleportEvent event) {
-        if (plugin.getGame() == null) return;
+        final Player player = event.getPlayer();
+        final ColorfallGame game = ColorfallGame.in(event.getTo().getWorld());
+        if (game == null) return;
         if (event.getCause() != TeleportCause.ENDER_PEARL) {
             return;
         }
-        if (!plugin.getGame().getGameMap().isBlockWithinCuboid(event.getTo().getBlock())) {
+        if (!game.getGameMap().isBlockWithinCuboid(event.getTo().getBlock())) {
             event.setCancelled(true);
         } else {
-            final Player player = event.getPlayer();
-            plugin.getGamePlayer(player).addEnderpearl();
+            game.getGamePlayer(player).addEnderpearl();
             if (plugin.saveState.event) {
                 plugin.saveState.addScore(player.getUniqueId(), 1);
                 plugin.computeHighscore();
@@ -112,29 +106,26 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler
-    public void onProjectileThrownEvent(ProjectileLaunchEvent event) {
-        if (event.getEntity() instanceof Snowball) {
-            Snowball snowball = (Snowball) event.getEntity();
-            if (snowball.getShooter() instanceof Player) {
-                Player playerThrower = (Player) snowball.getShooter();
-                plugin.getGamePlayer(playerThrower).addSnowball();
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        final ColorfallGame game = ColorfallGame.in(event.getEntity().getWorld());
+        if (game == null) return;
+        if (event.getEntity() instanceof Snowball snowball) {
+            if (snowball.getShooter() instanceof Player playerThrower) {
+                game.getGamePlayer(playerThrower).addSnowball();
             }
         }
     }
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
-        if (event.getDamager() instanceof Snowball) {
-            Snowball snowball = (Snowball) event.getDamager();
-            if (snowball.getShooter() instanceof Player) {
-                Player playerThrower = (Player) snowball.getShooter();
-                plugin.getGamePlayer(playerThrower).addSnowballHit();
+        if (!(event.getEntity() instanceof Player player)) return;
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) return;
+        if (event.getDamager() instanceof Snowball snowball) {
+            if (snowball.getShooter() instanceof Player playerThrower) {
+                game.getGamePlayer(playerThrower).addSnowballHit();
             }
         }
-        Player player = (Player) event.getEntity();
         player.setHealth(20);
     }
 
@@ -144,11 +135,15 @@ public final class EventListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (!(event.getEntity() instanceof Player)) {
+        if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        Player player = (Player) event.getEntity();
-        GamePlayer gp = plugin.getGamePlayer(player);
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) {
+            event.setCancelled(true);
+            return;
+        }
+        final GamePlayer gp = game.getGamePlayer(player);
         // Ok, this isn't pretty. But..
         // It seems that when a player is teleported, any fall damage he is due to take is inflicted immediately. Even when falling into the void.
         // This peculiarity leads to the player dying twice, once by falling out of the world and then by taking fall damage.
@@ -158,7 +153,7 @@ public final class EventListener implements Listener {
             return;
         }
         final boolean didFallOut = event.getCause() == DamageCause.VOID
-            || (event.getCause() == DamageCause.FALL && !plugin.game.gameMap.isBlockWithinCuboid(player.getLocation().getBlock()));
+            || (event.getCause() == DamageCause.FALL && !game.getGameMap().isBlockWithinCuboid(player.getLocation().getBlock()));
         if (didFallOut) {
             event.setCancelled(true);
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -168,7 +163,7 @@ public final class EventListener implements Listener {
                     if (location == null) location = player.getWorld().getSpawnLocation();
                     player.teleport(location);
                     player.setHealth(20.0);
-                    if (plugin.getGame() != null && plugin.getGame().getState() == GameState.STARTED && gp.isPlayer()) {
+                    if (game.getState() == GameState.STARTED && gp.isPlayer()) {
                         player.setGameMode(GameMode.SPECTATOR);
                         gp.died();
                     }
@@ -198,13 +193,14 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (plugin.getGame() == null) return;
+        final Player player = event.getPlayer();
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) return;
         if (event.getHand() != EquipmentSlot.HAND) return;
         switch (event.getAction()) {
         case RIGHT_CLICK_BLOCK:
         case RIGHT_CLICK_AIR:
-            final Player player = event.getPlayer();
-            if (plugin.getGame().onPlayerRightClick(player, player.getInventory().getItemInMainHand(), event.getClickedBlock())) {
+            if (game.onPlayerRightClick(player, player.getInventory().getItemInMainHand(), event.getClickedBlock())) {
                 event.setCancelled(true);
             }
         default: return;
@@ -212,24 +208,29 @@ public final class EventListener implements Listener {
     }
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
-        if (plugin.getGame() == null) return;
-        if (plugin.getGame().tryUseItemInHand(event.getPlayer())) {
+        final Player player = event.getPlayer();
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) return;
+        if (game.tryUseItemInHand(player)) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
-        if (plugin.getGame() == null) return;
-        if (plugin.getGame().tryUseItemInHand(event.getPlayer())) {
+        final Player player = event.getPlayer();
+        final ColorfallGame game = ColorfallGame.in(player.getWorld());
+        if (game == null) return;
+        if (game.tryUseItemInHand(player)) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onPistonExtend(BlockPistonExtendEvent event) {
-        if (plugin.getGame() == null) return;
-        if (plugin.getGame().isDisallowPistons()) event.setCancelled(true);
+        final ColorfallGame game = ColorfallGame.in(event.getBlock().getWorld());
+        if (game == null) return;
+        if (game.isDisallowPistons()) event.setCancelled(true);
     }
 
     @EventHandler
@@ -239,20 +240,23 @@ public final class EventListener implements Listener {
 
     @EventHandler
     public void onPlayerSpawnLocation(PlayerSpawnLocationEvent event) {
-        if (plugin.getGame() == null || plugin.getGame().getGameMap() == null) {
-            event.setSpawnLocation(Bukkit.getWorlds().get(0).getSpawnLocation());
+        final ColorfallGame game = ColorfallGame.in(event.getSpawnLocation().getWorld());
+        if (game == null) return;
+        if (game == null || game.getGameMap() == null) {
+            event.setSpawnLocation(plugin.getLobbyWorld().getSpawnLocation());
         } else {
-            event.setSpawnLocation(plugin.getGame().getSpawnLocation(event.getPlayer()));
+            event.setSpawnLocation(game.getSpawnLocation(event.getPlayer()));
         }
     }
 
     @EventHandler
     public void onProjectileHit(ProjectileHitEvent event) {
-        if (plugin.getGame() == null) return;
+        final ColorfallGame game = ColorfallGame.in(event.getEntity().getWorld());
+        if (game == null) return;
         if (!(event.getEntity() instanceof Snowball proj)) return;
         if (!(event.getHitEntity() instanceof Player victim)) return;
         event.setCancelled(true);
-        if (plugin.getGame().getRoundState() != RoundState.RUNNING) return;
+        if (game.getRoundState() != RoundState.RUNNING) return;
         Vector velo = proj.getVelocity().normalize().setY(0);
         if (velo.length() < 0.01) return;
         velo = velo.setY(0.25).normalize();
@@ -270,62 +274,33 @@ public final class EventListener implements Listener {
     }
 
     @EventHandler
-    void onBlockExplode(BlockExplodeEvent event) {
+    private void onBlockExplode(BlockExplodeEvent event) {
         event.blockList().clear();
         event.setCancelled(true);
     }
 
     @EventHandler
-    void onHangingBreak(HangingBreakEvent event) {
+    private void onHangingBreak(HangingBreakEvent event) {
         event.setCancelled(true);
     }
 
     @EventHandler
-    void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
+    private void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
         event.setCancelled(true);
     }
 
     @EventHandler
     protected void onPlayerHud(PlayerHudEvent event) {
-        List<Component> lines = new ArrayList<>();
-        lines.add(plugin.TITLE);
-        if (plugin.game != null && !plugin.game.obsolete) {
-            switch (plugin.game.state) {
-            case WAIT_FOR_PLAYERS:
-                lines.add(text("Waiting", GREEN));
-                break;
-            case COUNTDOWN_TO_START:
-                lines.add(text("Get ready.. " + plugin.game.secondsLeft, GREEN));
-                break;
-            case STARTED:
-                lines.add(join(noSeparators(), text(tiny("round "), GRAY), text(plugin.game.currentRoundIdx, WHITE)));
-                lines.add(join(noSeparators(), text(tiny("time "), GRAY), text(plugin.game.secondsLeft, WHITE)));
-                GamePlayer gp = plugin.getGamePlayer(event.getPlayer());
-                if (gp != null && gp.isPlayer() && gp.isAlive()) {
-                    lines.add(join(noSeparators(), text(tiny("lives "), GRAY), text(gp.getLivesLeft(), WHITE)));
-                }
-                break;
-            case END:
-                lines.add(text("Game Over " + plugin.game.secondsLeft, RED));
-                break;
-            default: break;
-            }
-            List<GamePlayer> gamePlayers = new ArrayList<>(plugin.gamePlayers.values());
-            gamePlayers.removeIf(gp -> !gp.isPlayer());
-            Collections.sort(gamePlayers, (a, b) -> Integer.compare(b.livesLeft, a.livesLeft));
-            for (GamePlayer gamePlayer : gamePlayers) {
-                Player player = gamePlayer.getPlayer();
-                lines.add(join(noSeparators(),
-                               Mytems.HEART.component,
-                               text(gamePlayer.livesLeft, RED),
-                               space(),
-                               (player != null ? player.displayName() : text(gamePlayer.name))));
-            }
+        final ColorfallGame game = ColorfallGame.in(event.getPlayer().getWorld());
+        if (game != null) {
+            game.onPlayerHud(event);
+            return;
         }
+        final List<Component> lines = new ArrayList<>();
+        lines.add(plugin.TITLE);
         if (plugin.saveState.event) {
             lines.addAll(Highscore.sidebar(plugin.highscore, TrophyCategory.MEDAL));
         }
-        if (lines.isEmpty()) return;
         event.sidebar(PlayerHudPriority.HIGHEST, lines);
     }
 
@@ -346,7 +321,8 @@ public final class EventListener implements Listener {
 
     @EventHandler
     private void onPlayerTPA(PlayerTPAEvent event) {
-        if (plugin.getGame() == null) return;
+        final ColorfallGame game = ColorfallGame.in(event.getTarget().getWorld());
+        if (game == null) return;
         event.setCancelled(true);
     }
 }

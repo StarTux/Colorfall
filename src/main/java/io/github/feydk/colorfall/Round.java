@@ -81,7 +81,7 @@ public final class Round {
         return r;
     }
 
-    public List<ItemStack> getDistributedPowerups() {
+    public List<ItemStack> getDistributedPowerups(ColorfallGame game) {
         List<ItemStack> list = new ArrayList<ItemStack>();
         if (powerups.size() == 0) {
             return list;
@@ -93,7 +93,7 @@ public final class Round {
                 ItemStack stack = entry.getKey();
                 // Special case. Don't give an ink sack, but a random dye of one of the colors in the pool.
                 if (stack.getType() == Material.INK_SAC) {
-                    list.add(plugin.getGame().getGameMap().getDye());
+                    list.add(game.getGameMap().getDye());
                 } else {
                     list.add(stack);
                 }

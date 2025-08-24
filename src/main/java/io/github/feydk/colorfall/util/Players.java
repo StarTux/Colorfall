@@ -7,6 +7,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.util.Vector;
 
 public final class Players {
     private Players() { }
@@ -20,6 +21,8 @@ public final class Players {
         for (PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
         }
+        player.setVelocity(new Vector());
+        player.setFallDistance(0f);
     }
 
     public static void heal(Player player) {
