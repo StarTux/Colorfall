@@ -403,7 +403,9 @@ public final class GameMap {
         Collections.shuffle(wrongColors);
         // Calculate new color distribution.  There is always a
         // certain number of correct colors plus some wrong colors.
-        double correctFraction = 0.5;
+        double correctFraction = game.getPlugin().getSaveState().isEvent()
+            ? 0.25
+            : 0.5;
         for (int i = 0; i < game.getCurrentRoundIdx(); i += 1) {
             correctFraction *= 0.9;
         }

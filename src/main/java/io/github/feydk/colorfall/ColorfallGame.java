@@ -190,6 +190,7 @@ public final class ColorfallGame {
                             winner = survivor;
                             survivor.setWinner();
                             survivor.setEndTime(new Date());
+                            survivor.addRound();
                             newState = GameState.END;
                             if (plugin.saveState.event) {
                                 List<String> titles = List.of("Colorful",
@@ -238,7 +239,8 @@ public final class ColorfallGame {
         }
     }
 
-    void onStateChange(GameState oldState, GameState newState) {
+    private void onStateChange(GameState oldState, GameState newState) {
+        plugin.getLogger().info("[" + gameMap.getWorld().getName() + "] State " + oldState + " => " + newState);
         stateTicks = 0;
         switch (newState) {
         case INIT:
@@ -321,10 +323,11 @@ public final class ColorfallGame {
                     if (gp.getRoundsPlayed() <= 0) break;
                     if (roundsPlayed != gp.getRoundsPlayed()) {
                         roundsPlayed = gp.getRoundsPlayed();
-                        scoreBonus -= 1;
+                        scoreBonus -= 3;
                     }
                     if (scoreBonus > 0) {
-                        plugin.saveState.addScore(winner.uuid, scoreBonus);
+                        plugin.getLogger().info(scoreBonus + " bonus score for " + gp.getName());
+                        plugin.saveState.addScore(gp.uuid, scoreBonus);
                     }
                 }
                 plugin.computeHighscore();
@@ -610,7 +613,6 @@ public final class ColorfallGame {
             }
         }
         if (newState != null && roundState != newState) {
-            //plugin.getLogger().info("Entering round state: " + newState);
             onRoundStateChange(roundState, newState);
             roundState = newState;
         }
@@ -758,6 +760,7 @@ public final class ColorfallGame {
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_FIRE_TICK, false);
         world.setGameRule(GameRule.FALL_DAMAGE, true);
+        world.setGameRule(GameRule.LOCATOR_BAR, false);
         world.setWeatherDuration(Integer.MAX_VALUE);
         world.setStorm(false);
         WorldBorder worldBorder = world.getWorldBorder();

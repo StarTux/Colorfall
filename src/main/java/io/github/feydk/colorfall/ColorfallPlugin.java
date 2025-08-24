@@ -202,7 +202,7 @@ public final class ColorfallPlugin extends JavaPlugin {
             MapVote.start(MinigameMatchType.COLORFALL, mapVote -> {
                     mapVote.setTitle(TITLE);
                     mapVote.setLobbyWorld(getLobbyWorld());
-                    mapVote.setDesiredGroupSize(6);
+                    mapVote.setDesiredGroupSize(4);
                     mapVote.setCallback(result -> {
                             final List<Player> players = result.getPlayers();
                             if (players.size() < 2) {

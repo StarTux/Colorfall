@@ -135,6 +135,14 @@ public final class EventListener implements Listener {
         if (!(event.getEntity() instanceof Player player)) {
             return;
         }
+        if (player.getWorld().equals(plugin.getLobbyWorld()) && event.getCause() == DamageCause.VOID) {
+            event.setCancelled(true);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.teleport(plugin.getLobbyWorld().getSpawnLocation());
+                    Players.reset(player);
+                });
+            return;
+        }
         final ColorfallGame game = ColorfallGame.in(player.getWorld());
         if (game == null) {
             event.setCancelled(true);
