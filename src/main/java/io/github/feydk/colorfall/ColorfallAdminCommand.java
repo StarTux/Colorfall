@@ -91,7 +91,7 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
                 ColorfallGame game = new ColorfallGame(plugin);
                 game.loadMap(buildWorld, world);
                 plugin.getGames().add(game);
-                game.bringAllPlayers();
+                game.bringPlayers(plugin.getLobbyWorld().getPlayers());
                 game.setState(GameState.COUNTDOWN_TO_START);
             });
         return true;
@@ -111,7 +111,7 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
                 ColorfallGame game = new ColorfallGame(plugin);
                 game.loadMap(buildWorld, world);
                 plugin.getGames().add(game);
-                game.bringAllPlayers();
+                game.bringPlayers(plugin.getLobbyWorld().getPlayers());
                 game.setState(GameState.COUNTDOWN_TO_START);
                 game.setTest(true);
             });

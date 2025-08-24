@@ -439,8 +439,8 @@ public final class ColorfallGame {
         return null;
     }
 
-    public void bringAllPlayers() {
-        for (Player player : plugin.getLobbyWorld().getPlayers()) {
+    public void bringPlayers(List<Player> playerList) {
+        for (Player player : playerList) {
             Players.reset(player);
             GamePlayer gp = getGamePlayer(player);
             gp.setPlayer();

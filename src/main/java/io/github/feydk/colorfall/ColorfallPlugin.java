@@ -202,15 +202,19 @@ public final class ColorfallPlugin extends JavaPlugin {
             MapVote.start(MinigameMatchType.COLORFALL, mapVote -> {
                     mapVote.setTitle(TITLE);
                     mapVote.setLobbyWorld(getLobbyWorld());
-                    // @Setter private Consumer<MapVote> voteHandler = null;
-                    // @Setter private Consumer<MapVoteResult> callback = null;
+                    mapVote.setDesiredGroupSize(6);
                     mapVote.setCallback(result -> {
+                            final List<Player> players = result.getPlayers();
+                            if (players.size() < 2) {
+                                result.delete();
+                                return;
+                            }
                             final BuildWorld buildWorld = result.getBuildWorldWinner();
                             final World world = result.getLocalWorldCopy();
                             final ColorfallGame game = new ColorfallGame(this);
                             game.loadMap(buildWorld, world);
                             games.add(game);
-                            game.bringAllPlayers();
+                            game.bringPlayers(players);
                             game.setState(GameState.COUNTDOWN_TO_START);
                         });
                 });
