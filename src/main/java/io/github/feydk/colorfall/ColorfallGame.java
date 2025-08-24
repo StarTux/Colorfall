@@ -47,6 +47,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import static com.cavetale.core.font.Unicode.tiny;
+import static java.util.Comparator.comparing;
 import static net.kyori.adventure.text.Component.empty;
 import static net.kyori.adventure.text.Component.newline;
 import static net.kyori.adventure.text.Component.space;
@@ -199,8 +200,6 @@ public final class ColorfallGame {
                                 String cmd = "titles unlockset " + winner.getName() + " " + String.join(" ", titles);
                                 plugin.getLogger().info("Running command: " + cmd);
                                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                                plugin.saveState.addScore(winner.uuid, 10);
-                                plugin.computeHighscore();
                             }
                         }
                     }
@@ -289,6 +288,7 @@ public final class ColorfallGame {
             moreThanOnePlayed = count > 1;
             break;
         case END:
+            // Match complete event
             do {
                 MinigameMatchCompleteEvent mmcEvent = new MinigameMatchCompleteEvent(MinigameMatchType.COLORFALL);
                 if (plugin.saveState.event) mmcEvent.addFlags(MinigameFlag.EVENT);
@@ -310,6 +310,25 @@ public final class ColorfallGame {
             }
             // Map Vote
             MapReview.start(gameMap.getWorld(), gameMap.getBuildWorld()).remindAllOnce();
+            // Event score and rewards
+            if (plugin.saveState.event) {
+                final List<GamePlayer> players = new ArrayList<>(gamePlayers.values());
+                players.sort(comparing(GamePlayer::getRoundsPlayed).reversed());
+                // We give the winner(s) 10 points, the 2nd 7, then 4, then 1.
+                int scoreBonus = 10;
+                int roundsPlayed = players.get(0).getRoundsPlayed();
+                for (GamePlayer gp : players) {
+                    if (gp.getRoundsPlayed() <= 0) break;
+                    if (roundsPlayed != gp.getRoundsPlayed()) {
+                        roundsPlayed = gp.getRoundsPlayed();
+                        scoreBonus -= 1;
+                    }
+                    if (scoreBonus > 0) {
+                        plugin.saveState.addScore(winner.uuid, scoreBonus);
+                    }
+                }
+                plugin.computeHighscore();
+            }
         default:
             break;
         }
@@ -667,10 +686,6 @@ public final class ColorfallGame {
             disallowPistons = false;
             itemInHand.subtract(1);
             getGamePlayer(p).addClock();
-            if (plugin.saveState.event) {
-                plugin.saveState.addScore(p.getUniqueId(), 1);
-                plugin.computeHighscore();
-            }
             return true;
         } else if (itemInHand.getType() == Material.EMERALD) {
             if (disallowRandomize) {
@@ -681,10 +696,6 @@ public final class ColorfallGame {
                     gameMap.randomizeBlocks();
                     itemInHand.subtract(1);
                     getGamePlayer(p).addRandomizer();
-                    if (plugin.saveState.event) {
-                        plugin.saveState.addScore(p.getUniqueId(), 1);
-                        plugin.computeHighscore();
-                    }
                     final Component message = textOfChildren(newline(),
                                                              space(), VanillaItems.EMERALD.component,
                                                              text(p.getName() + " "),
@@ -804,10 +815,6 @@ public final class ColorfallGame {
                 player.getWorld().playSound(block.getLocation(), Sound.ENTITY_SHEEP_SHEAR, SoundCategory.MASTER, 0.2f, 1f);
                 hand.subtract(1);
                 getGamePlayer(player).addDye();
-                if (plugin.saveState.event) {
-                    plugin.saveState.addScore(player.getUniqueId(), 2);
-                    plugin.computeHighscore();
-                }
                 return true;
             } else {
                 return tryUseItemInHand(player);

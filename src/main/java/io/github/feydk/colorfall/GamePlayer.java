@@ -31,7 +31,6 @@ public final class GamePlayer {
     protected Date startTime;
     protected Date endTime;
     protected int roundsPlayed = 0;
-    protected int roundsSurvived = 0;
     protected int deaths = 0;
     protected int livesLeft;
     protected boolean superior = false;

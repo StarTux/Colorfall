@@ -99,10 +99,6 @@ public final class EventListener implements Listener {
             event.setCancelled(true);
         } else {
             game.getGamePlayer(player).addEnderpearl();
-            if (plugin.saveState.event) {
-                plugin.saveState.addScore(player.getUniqueId(), 1);
-                plugin.computeHighscore();
-            }
         }
     }
 
@@ -267,10 +263,6 @@ public final class EventListener implements Listener {
         if (proj.getShooter() instanceof Player launcher) {
             launcher.playSound(launcher.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, SoundCategory.MASTER, 1.0f, 1.0f);
             victim.sendMessage(text(launcher.getName() + " hit you with a snowball", RED));
-            if (plugin.saveState.event) {
-                plugin.saveState.addScore(launcher.getUniqueId(), 3);
-                plugin.computeHighscore();
-            }
         }
     }
 
