@@ -3,7 +3,6 @@ package io.github.feydk.colorfall;
 import com.cavetale.core.event.minigame.MinigameMatchType;
 import com.cavetale.core.util.Json;
 import com.cavetale.fam.trophy.Highscore;
-import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.cavetale.mytems.util.BlockColor;
 import com.cavetale.server.ServerPlugin;
 import com.winthier.creative.BuildWorld;
@@ -235,14 +234,5 @@ public final class ColorfallPlugin extends JavaPlugin {
 
     protected void computeHighscore() {
         highscore = Highscore.of(saveState.scores);
-    }
-
-    protected int rewardHighscore() {
-        return Highscore.reward(saveState.scores,
-                                "colorfall",
-                                TrophyCategory.MEDAL,
-                                TITLE,
-                                hi -> ("You collected "
-                                       + hi.score + " point" + (hi.score == 1 ? "" : "s")));
     }
 }

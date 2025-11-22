@@ -5,6 +5,8 @@ import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
 import com.cavetale.core.event.minigame.MinigameMatchType;
+import com.cavetale.fam.trophy.Highscore;
+import com.cavetale.mytems.item.trophy.TrophyCategory;
 import com.winthier.creative.BuildWorld;
 import com.winthier.playercache.PlayerCache;
 import java.io.File;
@@ -195,8 +197,20 @@ public final class ColorfallAdminCommand extends AbstractCommand<ColorfallPlugin
     }
 
     private void scoreReward(CommandSender sender) {
-        int count = plugin.rewardHighscore();
+        final int count = Highscore.reward(
+            plugin.getSaveState().getScores(),
+            "colorfall",
+            TrophyCategory.MEDAL,
+            plugin.TITLE,
+            hi -> ("You collected " + hi.score + " point" + (hi.score == 1 ? "" : "s"))
+        );
         sender.sendMessage(text("Rewarded " + count + " players", AQUA));
+        Highscore.rewardMoneyWithFeedback(
+            sender,
+            plugin,
+            plugin.getSaveState().getScores(),
+            "Colorfall"
+        );
     }
 
     private void scoreDump(CommandSender sender) {
